@@ -46,6 +46,14 @@ function app() {
       }
       this.initSpaceGallery();
       this.initGoogleSignIn();
+      
+      // Watch for zoom and speed changes
+      this.$watch('spaceZoom', value => {
+        if (window.SpaceGallery) window.SpaceGallery.zoom = parseFloat(value);
+      });
+      this.$watch('spaceSpeed', value => {
+        if (window.SpaceGallery) window.SpaceGallery.speed = parseFloat(value);
+      });
     },
     
     initGoogleSignIn() {

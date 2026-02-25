@@ -301,13 +301,13 @@
       </div>
       
       <div class="flex gap-2 mb-4">
-        <button @click="spaceTab = 'solar'" 
+        <button @click="loadSpaceTab('solar')" 
                 :class="spaceTab === 'solar' ? 'bg-nasa text-black' : 'bg-gray-800'"
                 class="px-6 py-2 rounded font-bold transition">SOLAR SYSTEM</button>
-        <button @click="spaceTab = 'stars'" 
+        <button @click="loadSpaceTab('stars')" 
                 :class="spaceTab === 'stars' ? 'bg-nasa text-black' : 'bg-gray-800'"
                 class="px-6 py-2 rounded font-bold transition">NEARBY STARS</button>
-        <button @click="spaceTab = 'nebulae'" 
+        <button @click="loadSpaceTab('nebulae')" 
                 :class="spaceTab === 'nebulae' ? 'bg-nasa text-black' : 'bg-gray-800'"
                 class="px-6 py-2 rounded font-bold transition">NEBULAE</button>
       </div>
