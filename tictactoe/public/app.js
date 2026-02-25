@@ -96,6 +96,11 @@ function app() {
         this.screen = 'waiting';
       });
       
+      this.socket.on('room:joined', ({ code, symbol }) => {
+        this.roomCode = code;
+        this.mySymbol = symbol;
+      });
+      
       this.socket.on('room:error', (msg) => {
         this.lobbyError = msg;
         setTimeout(() => this.lobbyError = '', 3000);
