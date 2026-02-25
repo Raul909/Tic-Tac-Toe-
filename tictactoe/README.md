@@ -1,19 +1,19 @@
 # 🎮 Tic Tac Toe — Real-time Multiplayer
 
-A beautiful, real-time multiplayer Tic Tac Toe game with user authentication.
+A beautiful, real-time multiplayer Tic Tac Toe game with secure authentication.
 
 ## Features
-- 🔐 **User Auth** — Register/login with hashed passwords
+- 🔐 **Secure Auth** — HttpOnly cookies, 8-char passwords, rate limiting
 - 🌐 **Online Multiplayer** — Real-time via Socket.io with room codes
 - 🤖 **AI Mode** — Unbeatable minimax AI opponent
-- 💬 **In-game Chat** — Chat with your opponent during the game
+- 💬 **In-game Chat** — Sanitized chat with your opponent
 - 🏆 **Persistent Stats** — Wins/losses/draws tracked across sessions
 - ✨ **Fluid Animations** — Particle bursts, draw animations, glowing effects
 
 ## Tech Stack
 - **Backend**: Node.js, Express, Socket.io
-- **Auth**: bcryptjs (password hashing), UUID tokens
-- **Frontend**: Vanilla JS, HTML5 Canvas (starfield), CSS animations
+- **Auth**: bcryptjs, httpOnly cookies, rate limiting
+- **Frontend**: Vanilla JS, HTML5 Canvas, CSS animations
 
 ## Run Locally
 ```bash
@@ -22,32 +22,26 @@ npm start
 # Open http://localhost:3000
 ```
 
-## Deploy on Render (Free)
+## Deploy to Render
 
-1. Push this repo to GitHub
-2. Go to [render.com](https://render.com) → **New** → **Web Service**
-3. Connect your GitHub repo
-4. Settings:
-   - **Build Command**: `npm install`
-   - **Start Command**: `npm start`
-   - **Plan**: Free
-5. Click **Create Web Service**
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete deployment guide.
 
-> ⚠️ Free Render tier spins down after 15 min inactivity (30-60s cold start).
-> Upgrade to Starter ($7/mo) for always-on hosting.
+**Quick Deploy:**
+1. Push to GitHub
+2. Connect to Render
+3. Add `ALLOWED_ORIGINS` environment variable
+4. Deploy!
 
-## Deploy on Railway (Alternative)
-
-```bash
-npm install -g @railway/cli
-railway login
-railway init
-railway up
-```
+## Security Features
+- ✅ Rate limiting (5 auth attempts/15min)
+- ✅ HttpOnly cookies (XSS protection)
+- ✅ 8-character minimum passwords
+- ✅ Input sanitization
+- ✅ CORS restrictions
 
 ## How to Play
 
-1. **Register/Login** with a username and password
+1. **Register/Login** with username (3-16 chars) and password (8+ chars)
 2. **Create a Room** — share the 4-letter code with a friend
 3. Friend clicks **Join** and enters the code
 4. Game starts automatically — chat while you play!
@@ -58,6 +52,8 @@ railway up
 ├── server.js          # Express + Socket.io backend
 ├── package.json
 ├── render.yaml        # Render deployment config
+├── DEPLOYMENT.md      # Deployment guide
+├── .env.example       # Environment variables template
 ├── data/
 │   └── users.json     # Persisted user accounts (auto-created)
 └── public/

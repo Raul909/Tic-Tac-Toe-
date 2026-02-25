@@ -5,15 +5,36 @@ const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const path = require('path');
+const rateLimit = require('express-rate-limit');
+const cookieParser = require('cookie-parser');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: '*', methods: ['GET', 'POST'] }
+  cors: { 
+    origin: process.env.NODE_ENV === 'production' 
+      ? process.env.ALLOWED_ORIGINS?.split(',') || [] 
+      : '*', 
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
 });
 
 app.use(express.json());
+app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Rate limiting
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { ok: false, error: 'Too many attempts, try again later' }
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 30
+});
 
 // ── DATA PERSISTENCE ──────────────────────────────────────────────────
 const DATA_DIR = path.join(__dirname, 'data');
@@ -28,8 +49,12 @@ try {
   }
 } catch (e) { users = {}; }
 
+let saveTimer;
 function saveUsers() {
-  try { fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2)); } catch (e) {}
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try { fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2)); } catch (e) {}
+  }, 1000);
 }
 
 // ── IN-MEMORY SESSIONS & ROOMS ────────────────────────────────────────
@@ -65,10 +90,10 @@ function leaveCurrentRoom(socket) {
     const idx = room.players.findIndex(p => p.socketId === socket.id);
     if (idx === -1) continue;
     socket.leave(code);
-    if (room.players.length === 1) {
+    room.players.splice(idx, 1);
+    if (room.players.length === 0) {
       rooms.delete(code);
     } else {
-      room.players.splice(idx, 1);
       room.status = 'waiting';
       delete room.rematchVotes;
       socket.to(code).emit('game:opponent-left');
@@ -85,7 +110,7 @@ function getRoomForSocket(socketId) {
 }
 
 // ── REST ENDPOINTS ────────────────────────────────────────────────────
-app.post('/api/register', async (req, res) => {
+app.post('/api/register', authLimiter, async (req, res) => {
   const { username, password } = req.body || {};
   if (!username?.trim() || !password) return res.json({ ok: false, error: 'Missing fields' });
 
@@ -94,7 +119,7 @@ app.post('/api/register', async (req, res) => {
   if (key.length > 16) return res.json({ ok: false, error: 'Username too long (max 16 chars)' });
   if (!/^[a-z0-9_]+$/.test(key)) return res.json({ ok: false, error: 'Letters, numbers, underscores only' });
   if (users[key])      return res.json({ ok: false, error: 'Username already taken' });
-  if (password.length < 4) return res.json({ ok: false, error: 'Password min 4 characters' });
+  if (password.length < 8) return res.json({ ok: false, error: 'Password min 8 characters' });
 
   const hash = await bcrypt.hash(password, 10);
   users[key] = {
@@ -107,11 +132,17 @@ app.post('/api/register', async (req, res) => {
 
   const token = uuidv4();
   sessions.set(token, key);
+  res.cookie('session', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000
+  });
   const { wins, losses, draws } = users[key];
-  res.json({ ok: true, token, username: users[key].displayName, stats: { wins, losses, draws } });
+  res.json({ ok: true, username: users[key].displayName, stats: { wins, losses, draws } });
 });
 
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', authLimiter, async (req, res) => {
   const { username, password } = req.body || {};
   if (!username || !password) return res.json({ ok: false, error: 'Missing fields' });
 
@@ -124,12 +155,25 @@ app.post('/api/login', async (req, res) => {
 
   const token = uuidv4();
   sessions.set(token, key);
+  res.cookie('session', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000
+  });
   const { wins, losses, draws } = user;
-  res.json({ ok: true, token, username: user.displayName, stats: { wins, losses, draws } });
+  res.json({ ok: true, username: user.displayName, stats: { wins, losses, draws } });
+});
+
+app.post('/api/logout', (req, res) => {
+  const token = req.cookies.session;
+  if (token) sessions.delete(token);
+  res.clearCookie('session');
+  res.json({ ok: true });
 });
 
 // Leaderboard endpoint
-app.get('/api/leaderboard', (req, res) => {
+app.get('/api/leaderboard', apiLimiter, (req, res) => {
   const board = Object.values(users)
     .map(u => ({ name: u.displayName, wins: u.wins, losses: u.losses, draws: u.draws }))
     .sort((a, b) => b.wins - a.wins)
@@ -152,6 +196,14 @@ io.on('connection', (socket) => {
     const { wins, losses, draws, displayName } = users[key];
     socket.emit('auth:ok', { username: displayName, stats: { wins, losses, draws } });
   });
+
+  // Helper to sanitize text
+  const sanitize = (text) => {
+    if (!text) return '';
+    return text.trim()
+      .replace(/[<>]/g, '')
+      .slice(0, 120);
+  };
 
   // ── CREATE ROOM ──
   socket.on('room:create', () => {
@@ -269,7 +321,8 @@ io.on('connection', (socket) => {
   socket.on('chat:msg', ({ code, text }) => {
     const key = socketUser.get(socket.id);
     if (!key || !text?.trim()) return;
-    const clean = text.trim().slice(0, 120);
+    const clean = sanitize(text);
+    if (!clean) return;
     io.to(code).emit('chat:msg', {
       from: users[key].displayName,
       text: clean,
