@@ -31,6 +31,7 @@ function app() {
     gameOverSubtitle: '',
     gameOverEmoji: '',
     mode: '',
+    shareCopied: false,
     
     // Space Gallery
     spaceTab: 'solar',
@@ -597,6 +598,112 @@ function app() {
         document.getElementById('space-object-details').innerHTML = '';
         document.querySelectorAll('.space-object-item').forEach(el => el.classList.remove('active'));
       }
+    },
+    
+    // Social Sharing Functions
+    shareTwitter() {
+      const text = `🎮 I just won at Tic Tac Toe Mission Control! 🏆\n\nFinal Score: X ${this.scores.X} - D ${this.scores.D} - O ${this.scores.O}\n\nThink you can beat me? 🚀`;
+      const url = window.location.origin;
+      const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+      window.open(twitterUrl, '_blank', 'width=550,height=420');
+    },
+    
+    shareFacebook() {
+      const url = window.location.origin;
+      const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+      window.open(facebookUrl, '_blank', 'width=550,height=420');
+    },
+    
+    shareWhatsApp() {
+      const text = `🎮 I just won at Tic Tac Toe Mission Control! 🏆\n\nFinal Score: X ${this.scores.X} - D ${this.scores.D} - O ${this.scores.O}\n\nPlay here: ${window.location.origin}`;
+      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
+      window.open(whatsappUrl, '_blank');
+    },
+    
+    downloadScreenshot() {
+      // Create a canvas to draw the victory screen
+      const canvas = document.createElement('canvas');
+      canvas.width = 800;
+      canvas.height = 600;
+      const ctx = canvas.getContext('2d');
+      
+      // Background
+      ctx.fillStyle = '#000510';
+      ctx.fillRect(0, 0, 800, 600);
+      
+      // Stars
+      for (let i = 0; i < 100; i++) {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(Math.random() * 800, Math.random() * 600, 2, 2);
+      }
+      
+      // Title
+      ctx.fillStyle = '#00d4ff';
+      ctx.font = 'bold 24px "Exo 2"';
+      ctx.textAlign = 'center';
+      ctx.fillText('TIC TAC TOE - MISSION CONTROL', 400, 80);
+      
+      // Victory emoji
+      ctx.font = '80px Arial';
+      ctx.fillText(this.gameOverEmoji, 400, 180);
+      
+      // Victory text
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 48px "Exo 2"';
+      ctx.fillText(this.gameOverTitle, 400, 260);
+      
+      ctx.fillStyle = '#00d4ff';
+      ctx.font = '20px "Space Mono"';
+      ctx.fillText(this.gameOverSubtitle, 400, 300);
+      
+      // Score
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 32px "Space Mono"';
+      ctx.fillText(`X ${this.scores.X}  —  D ${this.scores.D}  —  O ${this.scores.O}`, 400, 380);
+      
+      // Player name
+      ctx.fillStyle = '#4dffdb';
+      ctx.font = '24px "Exo 2"';
+      ctx.fillText(`Player: ${this.user.username}`, 400, 440);
+      
+      // URL
+      ctx.fillStyle = '#666';
+      ctx.font = '18px "Space Mono"';
+      ctx.fillText(window.location.origin, 400, 520);
+      
+      // Border
+      ctx.strokeStyle = '#00d4ff';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(20, 20, 760, 560);
+      
+      // Download
+      canvas.toBlob((blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `tictactoe-victory-${Date.now()}.png`;
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+    },
+    
+    copyShareLink() {
+      const shareText = `🎮 I just won at Tic Tac Toe Mission Control! 🏆\n\nFinal Score: X ${this.scores.X} - D ${this.scores.D} - O ${this.scores.O}\n\nPlay here: ${window.location.origin}`;
+      
+      navigator.clipboard.writeText(shareText).then(() => {
+        this.shareCopied = true;
+        setTimeout(() => this.shareCopied = false, 3000);
+      }).catch(() => {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = shareText;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        this.shareCopied = true;
+        setTimeout(() => this.shareCopied = false, 3000);
+      });
     }
   }
 }
