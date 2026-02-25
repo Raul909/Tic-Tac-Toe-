@@ -39,14 +39,14 @@ https://github.com/user-attachments/assets/your-video-id-here
 
 <div align="center">
   <img src="screenshots/auth-screen.png" alt="Login Screen with 3D Space" width="800"/>
-  <p><em>NASA-themed login with realistic 3D planets and stars</em></p>
+  <p><em>NASA-themed login with realistic 3D planets, stars, and real-time weather effects</em></p>
 </div>
 
 ### 🎮 Gameplay Experience
 
 <div align="center">
   <img src="screenshots/game-board.png" alt="Game Board" width="800"/>
-  <p><em>Mission control interface with real-time gameplay</em></p>
+  <p><em>Mission control interface with real-time gameplay and cinematic space background</em></p>
 </div>
 
 ### 🏆 Victory & Social Sharing
@@ -56,25 +56,63 @@ https://github.com/user-attachments/assets/your-video-id-here
   <p><em>Share your wins on Twitter, Facebook, WhatsApp, or download screenshot</em></p>
 </div>
 
-### 🌌 Interactive Space Gallery
+### 🌌 3D Interactive Space Explorer
 
 <div align="center">
-  <img src="screenshots/space-gallery.png" alt="Space Gallery" width="800"/>
-  <p><em>Explore solar system, nearby stars, and nebulae</em></p>
+  <img src="screenshots/space-explorer-solar.png" alt="Solar System 3D View" width="800"/>
+  <p><em>Fully 3D solar system with orbital controls - drag to rotate, scroll to zoom</em></p>
+</div>
+
+<div align="center">
+  <img src="screenshots/space-explorer-stars.png" alt="Nearby Stars 3D View" width="800"/>
+  <p><em>8 closest stars with realistic colors and your location reference point</em></p>
+</div>
+
+<div align="center">
+  <img src="screenshots/space-explorer-nebulae.png" alt="Nebulae 3D View" width="800"/>
+  <p><em>Famous nebulae as particle clouds with volumetric rendering</em></p>
+</div>
+
+### 🌦️ Real-Time Weather Integration
+
+<div align="center">
+  <img src="screenshots/weather-rain.png" alt="Rain Weather Effect" width="800"/>
+  <p><em>Real-time weather based on your location - rain, snow, clouds, or clear</em></p>
 </div>
 
 ### 📱 Mobile Experience
 
 <div align="center">
   <img src="screenshots/mobile-view.png" alt="Mobile View" width="400"/>
-  <p><em>Fully responsive design for mobile devices</em></p>
+  <p><em>Fully responsive design for mobile devices with touch controls</em></p>
 </div>
 
-> **📌 To add your screenshots:**
+> **📌 How to capture screenshots from live site:**
+> 
+> **Visit:** https://tictactoe-multiplayer-kx9u.onrender.com/
+> 
+> **Screenshots to take:**
+> 1. **auth-screen.png** - Login page with 3D space background
+> 2. **game-board.png** - Active game with X's and O's
+> 3. **victory-share.png** - Victory screen with share buttons
+> 4. **space-explorer-solar.png** - Space Explorer → Solar System tab
+> 5. **space-explorer-stars.png** - Space Explorer → Nearby Stars tab
+> 6. **space-explorer-nebulae.png** - Space Explorer → Nebulae tab
+> 7. **weather-rain.png** - Space Explorer with rain/snow weather effect
+> 8. **mobile-view.png** - Mobile view (use browser dev tools, 375x667)
+> 
+> **Tools:**
+> - **Windows**: Win + Shift + S
+> - **Mac**: Cmd + Shift + 4
+> - **Browser**: F12 → Device Toolbar → Screenshot
+> - **Full Page**: Browser extensions like "Full Page Screen Capture"
+> 
+> **Steps:**
 > 1. Create `screenshots/` folder in project root
-> 2. Take screenshots of your deployed app
-> 3. Save as: `auth-screen.png`, `game-board.png`, `victory-share.png`, `space-gallery.png`, `mobile-view.png`
-> 4. Commit and push to GitHub
+> 2. Visit live site and capture each screen
+> 3. Save with exact names above
+> 4. Optimize: `convert image.png -resize 1200x -quality 85 image.png`
+> 5. Commit: `git add screenshots/ && git commit -m "Add screenshots" && git push`
 
 ---
 
@@ -95,17 +133,22 @@ https://github.com/user-attachments/assets/your-video-id-here
 
 ### 🌌 3D Space Experience
 - **Three.js 3D Background** - Realistic planets orbiting the sun
-- **10,000 Stars** - Twinkling star field with depth
-- **Realistic Planets** - Earth, Mars, Jupiter, Saturn with rings
-- **Dynamic Lighting** - Point light from sun, ambient lighting
+- **20,000+ Stars** - Twinkling star field with realistic colors
+- **Complete Solar System** - All 8 planets + Moon orbiting Earth
+- **Cinematic Lighting** - Three-point lighting system with shadows
+- **Real-Time Weather** - Rain, snow, clouds based on your location
 - **Smooth Camera** - Gentle floating camera movement
 
-### 🌠 Interactive Space Gallery
-- **Solar System** - 9 planets with real astronomical data
-- **Nearby Stars** - 8 closest stars with temperatures and masses
-- **Nebulae** - 6 famous nebulae with distances and types
-- **Interactive Controls** - Drag to pan, zoom, rotate
-- **Detailed Info** - Click objects for scientific data
+### 🌠 3D Interactive Space Explorer
+- **Full 3D Controls** - Drag to rotate, scroll to zoom, click to select
+- **Solar System** - All 8 planets + Sun with realistic orbits
+- **Nearby Stars** - 8 closest stars with realistic colors and data
+- **Nebulae** - 6 famous nebulae as particle clouds
+- **Your Location** - Earth reference point at center
+- **Real-Time Weather** - Synced weather effects (clear, rain, snow, cloudy)
+- **Cinematic Lighting** - Three-point lighting for realistic rendering
+- **PBR Materials** - Physically-based rendering for planets and stars
+- **Volumetric Effects** - Glow layers and atmospheric effects
 
 ### 🎉 Social Sharing
 - **Twitter** - Tweet your victories
@@ -151,6 +194,29 @@ npm start
 ```
 
 Visit `http://localhost:3000` and start playing!
+
+---
+
+## 🌦️ Real-Time Weather System
+
+The app features a **real-time weather system** that syncs with your actual location:
+
+### How It Works
+1. **Geolocation**: Requests your browser location (optional)
+2. **Weather API**: Fetches current weather from Open-Meteo (free, no API key)
+3. **Visual Effects**: Displays weather particles in 3D space
+4. **Background Sync**: Weather appears across all screens
+
+### Weather Types
+- ☀️ **Clear** - No particles, maximum visibility
+- ☁️ **Cloudy** - Gray particles drifting slowly
+- 🌧️ **Rain** - Blue droplets falling fast
+- ❄️ **Snow** - White flakes falling gently
+
+### Privacy
+- Location only used for weather, not stored
+- Works without location permission (time-based fallback)
+- No tracking or data collection
 
 ---
 
@@ -418,8 +484,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - [x] Real-time multiplayer
 - [x] AI opponent
-- [x] 3D space background
-- [x] Interactive space gallery
+- [x] 3D space background with all 8 planets + Moon
+- [x] 3D Interactive space explorer (Solar System, Stars, Nebulae)
+- [x] Full 3D orbital controls (drag, zoom, rotate)
+- [x] Real-time weather sync with user location
+- [x] Cinematic three-point lighting
 - [x] Social sharing
 - [x] Google OAuth
 - [x] Facebook OAuth
