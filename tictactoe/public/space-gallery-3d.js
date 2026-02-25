@@ -70,7 +70,7 @@
       this.renderer.setSize(container.clientWidth, 500);
       this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      this.renderer.toneMappingExposure = 1.8;
+      this.renderer.toneMappingExposure = 2.5;
       this.renderer.shadowMap.enabled = true;
       this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       container.appendChild(this.renderer.domElement);
@@ -269,46 +269,61 @@
     
     addReferencePoint() {
       // Add Earth as reference point (Your Location)
-      const earthGeometry = new THREE.SphereGeometry(5, 32, 32);
+      const earthGeometry = new THREE.SphereGeometry(8, 32, 32);
       const earthMaterial = new THREE.MeshStandardMaterial({
         color: 0x4A90E2,
-        emissive: 0x2E5F8C,
-        emissiveIntensity: 0.3,
-        roughness: 0.7,
-        metalness: 0.1
+        emissive: 0x4A90E2,
+        emissiveIntensity: 0.8,
+        roughness: 0.5,
+        metalness: 0.2
       });
       const earth = new THREE.Mesh(earthGeometry, earthMaterial);
       earth.position.set(0, 0, 0);
       earth.castShadow = true;
       earth.receiveShadow = true;
       
-      // Atmosphere glow
-      const glowGeometry = new THREE.SphereGeometry(6, 24, 24);
+      // Brighter atmosphere glow
+      const glowGeometry = new THREE.SphereGeometry(10, 24, 24);
       const glowMaterial = new THREE.MeshBasicMaterial({
-        color: 0x4A90E2,
+        color: 0x00d4ff,
         transparent: true,
-        opacity: 0.3,
+        opacity: 0.6,
         side: THREE.BackSide,
         blending: THREE.AdditiveBlending
       });
       const glow = new THREE.Mesh(glowGeometry, glowMaterial);
       earth.add(glow);
       
-      // Label
+      // Larger, brighter label
       const canvas = document.createElement('canvas');
-      canvas.width = 256;
-      canvas.height = 64;
+      canvas.width = 512;
+      canvas.height = 128;
       const ctx = canvas.getContext('2d');
+      
+      // Background for better visibility
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+      ctx.fillRect(0, 0, 512, 128);
+      
+      // Border
+      ctx.strokeStyle = '#00d4ff';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(2, 2, 508, 124);
+      
+      // Text
       ctx.fillStyle = '#00d4ff';
-      ctx.font = 'bold 32px Arial';
+      ctx.font = 'bold 48px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText('🌍 YOUR LOCATION', 128, 40);
+      ctx.fillText('🌍 YOUR LOCATION', 256, 80);
       
       const texture = new THREE.CanvasTexture(canvas);
-      const spriteMaterial = new THREE.SpriteMaterial({ map: texture, transparent: true });
+      const spriteMaterial = new THREE.SpriteMaterial({ 
+        map: texture, 
+        transparent: true,
+        depthTest: false
+      });
       const sprite = new THREE.Sprite(spriteMaterial);
-      sprite.position.set(0, 12, 0);
-      sprite.scale.set(40, 10, 1);
+      sprite.position.set(0, 20, 0);
+      sprite.scale.set(60, 15, 1);
       earth.add(sprite);
       
       this.scene.add(earth);
@@ -332,30 +347,30 @@
     },
     
     setupLighting() {
-      // Brighter ambient light for better visibility
-      const ambient = new THREE.AmbientLight(0x404060, 0.8);
+      // Very bright ambient light
+      const ambient = new THREE.AmbientLight(0xffffff, 1.5);
       this.scene.add(ambient);
       
       if (this.currentTab === 'solar') {
-        // Sun as key light
-        const sunLight = new THREE.PointLight(0xFFD700, 3, 800);
+        // Bright sun light
+        const sunLight = new THREE.PointLight(0xFFD700, 4, 800);
         sunLight.position.set(0, 0, 0);
         sunLight.castShadow = true;
         sunLight.shadow.mapSize.width = 1024;
         sunLight.shadow.mapSize.height = 1024;
         this.scene.add(sunLight);
       } else {
-        // Brighter cinematic three-point lighting
-        const keyLight = new THREE.DirectionalLight(0xffffff, 2);
+        // Very bright three-point lighting
+        const keyLight = new THREE.DirectionalLight(0xffffff, 3);
         keyLight.position.set(100, 100, 100);
         keyLight.castShadow = true;
         this.scene.add(keyLight);
         
-        const fillLight = new THREE.DirectionalLight(0x4A90E2, 1);
+        const fillLight = new THREE.DirectionalLight(0xffffff, 2);
         fillLight.position.set(-80, 40, 60);
         this.scene.add(fillLight);
         
-        const rimLight = new THREE.DirectionalLight(0x8A2BE2, 1);
+        const rimLight = new THREE.DirectionalLight(0xffffff, 1.5);
         rimLight.position.set(60, -30, -80);
         this.scene.add(rimLight);
       }

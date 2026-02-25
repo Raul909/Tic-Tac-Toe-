@@ -406,7 +406,7 @@
   accentLight.position.set(0, 80, 50);
   scene.add(accentLight);
   
-  // Enhanced Realistic Shooting Stars
+  // Improved Shooting Stars
   const shootingStars = [];
   
   function createShootingStar() {
@@ -414,18 +414,12 @@
     const positions = [];
     const colors = [];
     
-    // Longer trail for more realistic look
-    for (let i = 0; i < 25; i++) {
+    // Shorter, cleaner trail
+    for (let i = 0; i < 12; i++) {
       positions.push(0, 0, 0);
-      const intensity = 1 - (i / 25);
-      // Bright white-blue core fading to orange tail
-      if (i < 5) {
-        colors.push(1, 1, 1); // Bright white core
-      } else if (i < 15) {
-        colors.push(1, 0.95, 0.7 + intensity * 0.3); // Yellow-white
-      } else {
-        colors.push(1, 0.6 + intensity * 0.4, 0.3); // Orange tail
-      }
+      const intensity = 1 - (i / 12);
+      // Simple white to fade
+      colors.push(1, 1, 1 - (i * 0.05));
     }
     
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
@@ -434,29 +428,29 @@
     const material = new THREE.LineBasicMaterial({
       vertexColors: true,
       transparent: true,
-      opacity: 1,
+      opacity: 0.8,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
-      linewidth: 2
+      linewidth: 1
     });
     
     const line = new THREE.Line(geometry, material);
     
-    // Random starting position (higher up and further out)
+    // Start from far edges
     const angle = Math.random() * Math.PI * 2;
-    const distance = 200 + Math.random() * 400;
+    const distance = 300 + Math.random() * 200;
     line.position.set(
       Math.cos(angle) * distance,
-      80 + Math.random() * 120,
+      100 + Math.random() * 50,
       Math.sin(angle) * distance
     );
     
-    // Faster speed for more dramatic effect
-    const speed = 3.5 + Math.random() * 2.5;
+    // Faster, more diagonal movement
+    const speed = 4 + Math.random() * 2;
     const direction = new THREE.Vector3(
-      (Math.random() - 0.5) * 2,
-      -1.5 - Math.random() * 0.8,
-      (Math.random() - 0.5) * 2
+      (Math.random() - 0.5) * 1.5,
+      -2 - Math.random(),
+      (Math.random() - 0.5) * 1.5
     ).normalize();
     
     scene.add(line);
@@ -465,17 +459,16 @@
       line: line,
       velocity: direction.multiplyScalar(speed),
       life: 1,
-      positions: positions,
-      trailLength: 0
+      positions: positions
     };
   }
   
-  // More frequent shooting stars
+  // Less frequent, more special
   setInterval(() => {
-    if (Math.random() < 0.4 && shootingStars.length < 5) {
+    if (Math.random() < 0.15 && shootingStars.length < 2) {
       shootingStars.push(createShootingStar());
     }
-  }, 2000);
+  }, 4000);
   
   // Detailed Asteroid Belt
   const asteroidGeometry = new THREE.DodecahedronGeometry(0.5, 0);
@@ -568,11 +561,11 @@
       asteroid.mesh.rotation.y += asteroid.rotationSpeed * 0.7;
     });
     
-    // Shooting stars with realistic trail
+    // Shooting stars with simpler animation
     for (let i = shootingStars.length - 1; i >= 0; i--) {
       const star = shootingStars[i];
       
-      // Update trail positions
+      // Simple trail update
       const positions = star.line.geometry.attributes.position.array;
       for (let j = positions.length - 3; j >= 3; j -= 3) {
         positions[j] = positions[j - 3];
@@ -580,7 +573,6 @@
         positions[j + 2] = positions[j - 1];
       }
       
-      // Update head position
       positions[0] = star.line.position.x;
       positions[1] = star.line.position.y;
       positions[2] = star.line.position.z;
@@ -588,11 +580,8 @@
       
       // Move shooting star
       star.line.position.add(star.velocity);
-      star.life -= 0.012;
-      star.line.material.opacity = star.life;
-      
-      // Add slight gravity curve
-      star.velocity.y -= 0.02;
+      star.life -= 0.02;
+      star.line.material.opacity = star.life * 0.8;
       
       if (star.life <= 0 || star.line.position.y < -50) {
         scene.remove(star.line);

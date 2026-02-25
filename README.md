@@ -16,23 +16,21 @@
 
 ## 📸 Screenshots
 
-> **Note**: Screenshots are placeholders. To add real screenshots:
-> 1. Visit https://tictactoe-multiplayer-kx9u.onrender.com/
-> 2. Take screenshots using your OS screenshot tool
-> 3. Save them in a `screenshots/` folder
-> 4. Replace the placeholder URLs below with: `screenshots/filename.png`
-
 ### Authentication & 3D Background
-![Login Screen](https://via.placeholder.com/800x500/000510/00d4ff?text=Login+Screen+with+3D+Space+Background)
+![Login Screen](screenshots/auth-screen.png)
+*NASA-themed login with realistic 3D planets, stars, and real-time weather effects*
 
 ### Gameplay
-![Game Board](https://via.placeholder.com/800x500/000510/00d4ff?text=Game+Board+with+Real-time+Multiplayer)
+![Game Board](screenshots/game-board.png)
+*Mission control interface with real-time gameplay and cinematic space background*
 
 ### Victory Screen
-![Victory](https://via.placeholder.com/800x500/000510/00d4ff?text=Victory+Screen+with+Social+Sharing)
+![Victory](screenshots/victory-share.png)
+*Share your wins on Twitter, Facebook, WhatsApp, or download screenshot*
 
 ### 3D Space Explorer
-![Space Explorer](https://via.placeholder.com/800x500/000510/00d4ff?text=3D+Space+Explorer+with+Orbital+Controls)
+![Space Explorer](screenshots/space-explorer.png)
+*Fully 3D solar system with orbital controls - drag to rotate, scroll to zoom*
 
 ---
 
