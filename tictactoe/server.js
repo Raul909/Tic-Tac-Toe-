@@ -1,0 +1,305 @@
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const bcrypt = require('bcryptjs');
+const { v4: uuidv4 } = require('uuid');
+const fs = require('fs');
+const path = require('path');
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: '*', methods: ['GET', 'POST'] }
+});
+
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// ── DATA PERSISTENCE ──────────────────────────────────────────────────
+const DATA_DIR = path.join(__dirname, 'data');
+const USERS_FILE = path.join(DATA_DIR, 'users.json');
+
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+
+let users = {};
+try {
+  if (fs.existsSync(USERS_FILE)) {
+    users = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
+  }
+} catch (e) { users = {}; }
+
+function saveUsers() {
+  try { fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2)); } catch (e) {}
+}
+
+// ── IN-MEMORY SESSIONS & ROOMS ────────────────────────────────────────
+const sessions  = new Map(); // token -> userKey
+const socketUser = new Map(); // socketId -> userKey
+const userSocket = new Map(); // userKey -> socketId
+const rooms     = new Map(); // roomCode -> roomObj
+
+const WINS = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+
+function checkWinner(board) {
+  for (const line of WINS) {
+    const [a, b, c] = line;
+    if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+      return { winner: board[a], line };
+    }
+  }
+  if (board.every(Boolean)) return { draw: true, winner: null };
+  return null;
+}
+
+function generateRoomCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code;
+  do {
+    code = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  } while (rooms.has(code));
+  return code;
+}
+
+function leaveCurrentRoom(socket) {
+  for (const [code, room] of rooms.entries()) {
+    const idx = room.players.findIndex(p => p.socketId === socket.id);
+    if (idx === -1) continue;
+    socket.leave(code);
+    if (room.players.length === 1) {
+      rooms.delete(code);
+    } else {
+      room.players.splice(idx, 1);
+      room.status = 'waiting';
+      delete room.rematchVotes;
+      socket.to(code).emit('game:opponent-left');
+    }
+    break;
+  }
+}
+
+function getRoomForSocket(socketId) {
+  for (const [code, room] of rooms.entries()) {
+    if (room.players.some(p => p.socketId === socketId)) return { code, room };
+  }
+  return null;
+}
+
+// ── REST ENDPOINTS ────────────────────────────────────────────────────
+app.post('/api/register', async (req, res) => {
+  const { username, password } = req.body || {};
+  if (!username?.trim() || !password) return res.json({ ok: false, error: 'Missing fields' });
+
+  const key = username.trim().toLowerCase();
+  if (key.length < 3)  return res.json({ ok: false, error: 'Username too short (min 3 chars)' });
+  if (key.length > 16) return res.json({ ok: false, error: 'Username too long (max 16 chars)' });
+  if (!/^[a-z0-9_]+$/.test(key)) return res.json({ ok: false, error: 'Letters, numbers, underscores only' });
+  if (users[key])      return res.json({ ok: false, error: 'Username already taken' });
+  if (password.length < 4) return res.json({ ok: false, error: 'Password min 4 characters' });
+
+  const hash = await bcrypt.hash(password, 10);
+  users[key] = {
+    displayName: username.trim(),
+    hash,
+    wins: 0, losses: 0, draws: 0,
+    createdAt: Date.now()
+  };
+  saveUsers();
+
+  const token = uuidv4();
+  sessions.set(token, key);
+  const { wins, losses, draws } = users[key];
+  res.json({ ok: true, token, username: users[key].displayName, stats: { wins, losses, draws } });
+});
+
+app.post('/api/login', async (req, res) => {
+  const { username, password } = req.body || {};
+  if (!username || !password) return res.json({ ok: false, error: 'Missing fields' });
+
+  const key = username.trim().toLowerCase();
+  const user = users[key];
+  if (!user) return res.json({ ok: false, error: 'User not found' });
+
+  const match = await bcrypt.compare(password, user.hash);
+  if (!match) return res.json({ ok: false, error: 'Incorrect password' });
+
+  const token = uuidv4();
+  sessions.set(token, key);
+  const { wins, losses, draws } = user;
+  res.json({ ok: true, token, username: user.displayName, stats: { wins, losses, draws } });
+});
+
+// Leaderboard endpoint
+app.get('/api/leaderboard', (req, res) => {
+  const board = Object.values(users)
+    .map(u => ({ name: u.displayName, wins: u.wins, losses: u.losses, draws: u.draws }))
+    .sort((a, b) => b.wins - a.wins)
+    .slice(0, 10);
+  res.json(board);
+});
+
+// ── SOCKET.IO ─────────────────────────────────────────────────────────
+io.on('connection', (socket) => {
+
+  // ── AUTH ──
+  socket.on('auth', ({ token }) => {
+    const key = sessions.get(token);
+    if (!key || !users[key]) {
+      socket.emit('auth:error', 'Session expired, please log in again');
+      return;
+    }
+    socketUser.set(socket.id, key);
+    userSocket.set(key, socket.id);
+    const { wins, losses, draws, displayName } = users[key];
+    socket.emit('auth:ok', { username: displayName, stats: { wins, losses, draws } });
+  });
+
+  // ── CREATE ROOM ──
+  socket.on('room:create', () => {
+    const key = socketUser.get(socket.id);
+    if (!key) return socket.emit('error', 'Not authenticated');
+    leaveCurrentRoom(socket);
+
+    const code = generateRoomCode();
+    const room = {
+      code,
+      players: [{ socketId: socket.id, key, name: users[key].displayName, symbol: 'X' }],
+      board: Array(9).fill(null),
+      currentTurn: 'X',
+      status: 'waiting',
+      scores: { X: 0, O: 0, D: 0 }
+    };
+    rooms.set(code, room);
+    socket.join(code);
+    socket.emit('room:created', { code, symbol: 'X' });
+  });
+
+  // ── JOIN ROOM ──
+  socket.on('room:join', ({ code }) => {
+    const key = socketUser.get(socket.id);
+    if (!key) return socket.emit('error', 'Not authenticated');
+
+    const upperCode = code?.toUpperCase().trim();
+    const room = rooms.get(upperCode);
+    if (!room)                        return socket.emit('room:error', 'Room not found');
+    if (room.status === 'playing')    return socket.emit('room:error', 'Game in progress');
+    if (room.players.length >= 2)     return socket.emit('room:error', 'Room is full');
+    if (room.players[0].socketId === socket.id) return socket.emit('room:error', 'You created this room');
+
+    leaveCurrentRoom(socket);
+
+    room.players.push({ socketId: socket.id, key, name: users[key].displayName, symbol: 'O' });
+    room.status = 'playing';
+    socket.join(upperCode);
+    socket.emit('room:joined', { code: upperCode, symbol: 'O' });
+
+    const startData = {
+      board: room.board,
+      currentTurn: room.currentTurn,
+      players: room.players.map(p => ({ name: p.name, symbol: p.symbol })),
+      scores: room.scores
+    };
+    io.to(upperCode).emit('game:start', startData);
+  });
+
+  // ── MAKE MOVE ──
+  socket.on('game:move', ({ code, index }) => {
+    const key = socketUser.get(socket.id);
+    if (!key) return;
+    const room = rooms.get(code);
+    if (!room || room.status !== 'playing') return;
+
+    const player = room.players.find(p => p.socketId === socket.id);
+    if (!player)                           return socket.emit('game:error', 'Not in this room');
+    if (player.symbol !== room.currentTurn) return socket.emit('game:error', 'Not your turn');
+    if (room.board[index] !== null)         return socket.emit('game:error', 'Cell taken');
+    if (index < 0 || index > 8)            return;
+
+    room.board[index] = player.symbol;
+    io.to(code).emit('game:move', { index, symbol: player.symbol });
+
+    const result = checkWinner(room.board);
+    if (result) {
+      room.status = 'done';
+      if (result.winner) {
+        room.scores[result.winner]++;
+        const winPlayer  = room.players.find(p => p.symbol === result.winner);
+        const losePlayer = room.players.find(p => p.symbol !== result.winner);
+        if (winPlayer  && users[winPlayer.key])  { users[winPlayer.key].wins++;   saveUsers(); }
+        if (losePlayer && users[losePlayer.key]) { users[losePlayer.key].losses++; saveUsers(); }
+        io.to(code).emit('game:over', { winner: result.winner, line: result.line, scores: room.scores });
+      } else {
+        room.scores.D++;
+        room.players.forEach(p => { if (users[p.key]) users[p.key].draws++; });
+        saveUsers();
+        io.to(code).emit('game:over', { winner: null, draw: true, scores: room.scores });
+      }
+    } else {
+      room.currentTurn = room.currentTurn === 'X' ? 'O' : 'X';
+      io.to(code).emit('game:turn', { currentTurn: room.currentTurn });
+    }
+  });
+
+  // ── REMATCH ──
+  socket.on('game:rematch', ({ code }) => {
+    const room = rooms.get(code);
+    if (!room || room.players.length < 2) return;
+    if (!room.rematchVotes) room.rematchVotes = new Set();
+    room.rematchVotes.add(socket.id);
+
+    if (room.rematchVotes.size >= 2) {
+      // Swap symbols for fairness
+      room.players.forEach(p => { p.symbol = p.symbol === 'X' ? 'O' : 'X'; });
+      room.board = Array(9).fill(null);
+      room.currentTurn = 'X';
+      room.status = 'playing';
+      delete room.rematchVotes;
+      io.to(code).emit('game:start', {
+        board: room.board,
+        currentTurn: room.currentTurn,
+        players: room.players.map(p => ({ name: p.name, symbol: p.symbol })),
+        scores: room.scores
+      });
+    } else {
+      const name = users[socketUser.get(socket.id)]?.displayName || 'Opponent';
+      socket.to(code).emit('game:rematch-request', { from: name });
+    }
+  });
+
+  // ── CHAT ──
+  socket.on('chat:msg', ({ code, text }) => {
+    const key = socketUser.get(socket.id);
+    if (!key || !text?.trim()) return;
+    const clean = text.trim().slice(0, 120);
+    io.to(code).emit('chat:msg', {
+      from: users[key].displayName,
+      text: clean,
+      ts: Date.now()
+    });
+  });
+
+  // ── DISCONNECT ──
+  socket.on('disconnect', () => {
+    const key = socketUser.get(socket.id);
+    if (key) {
+      userSocket.delete(key);
+      socketUser.delete(socket.id);
+
+      for (const [code, room] of rooms.entries()) {
+        const idx = room.players.findIndex(p => p.socketId === socket.id);
+        if (idx !== -1) {
+          socket.to(code).emit('game:opponent-left');
+          rooms.delete(code);
+          break;
+        }
+      }
+    }
+  });
+});
+
+// ── HEALTH CHECK ──────────────────────────────────────────────────────
+app.get('/health', (_, res) => res.json({ status: 'ok', uptime: process.uptime() }));
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 TicTacToe server running on port ${PORT}`);
+});
