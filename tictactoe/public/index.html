@@ -50,10 +50,19 @@ html,body{height:100%;background:var(--bg);color:#fff;font-family:'Space Mono',m
 @media(max-width:500px){#weather-badge{top:auto;bottom:70px;right:12px;font-size:0.45rem;padding:4px 10px;}}
 
 /* SPACE GALLERY */
-#screen-space{padding:0;}
+#screen-space{padding:0;overflow:hidden;}
 .space-gallery-container{display:grid;grid-template-rows:auto 1fr;grid-template-columns:1fr 280px;
   height:100vh;width:100vw;gap:0;}
-@media(max-width:900px){.space-gallery-container{grid-template-columns:1fr;grid-template-rows:auto 1fr auto;}}
+@media(max-width:900px){
+  .space-gallery-container{grid-template-columns:1fr;grid-template-rows:auto 1fr auto;}
+  .space-sidebar{max-height:180px;padding:12px;}
+  .space-header{padding:12px 16px;gap:12px;}
+  .space-tabs{width:100%;}
+  .space-tab{flex:1;min-width:0;padding:6px 8px;font-size:0.5rem;}
+  .space-controls{flex-direction:column;gap:8px;padding:8px 12px;bottom:5px;}
+  .space-control-group{width:100%;}
+  input[type="range"]{width:100%;}
+}
 .space-header{grid-column:1/-1;background:rgba(255,255,255,0.03);border-bottom:1px solid var(--s2);
   padding:16px 20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
 .space-title{font-family:'Orbitron',sans-serif;font-size:clamp(1rem,3vw,1.3rem);font-weight:700;
@@ -151,8 +160,13 @@ input[type="range"]::-moz-range-thumb{width:14px;height:14px;background:var(--o)
 .shake{animation:errShake 0.35s ease;}
 
 /* LOBBY */
-#screen-lobby{flex-direction:column;gap:22px;padding:20px;}
+#screen-lobby{flex-direction:column;gap:22px;padding:clamp(16px,4vw,20px);}
 .lobby-top{display:flex;align-items:center;justify-content:space-between;width:min(520px,95vw);flex-wrap:wrap;gap:12px;}
+@media(max-width:600px){
+  .lobby-top{flex-direction:column;align-items:stretch;}
+  .lobby-top>div:last-child{justify-content:center;flex-wrap:wrap;}
+  .brand{font-size:clamp(1rem,5vw,1.2rem)!important;}
+}
 .user-chip{display:flex;align-items:center;gap:10px;background:var(--s1);border:1px solid var(--s2);border-radius:30px;padding:8px 16px;}
 .user-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--x),var(--o));
   display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;color:var(--bg);}
@@ -216,14 +230,27 @@ input[type="range"]::-moz-range-thumb{width:14px;height:14px;background:var(--o)
 @keyframes dotBounce{0%,80%,100%{transform:scale(0.6);opacity:0.25}40%{transform:scale(1.1);opacity:1}}
 
 /* GAME */
-#screen-game{flex-direction:row;align-items:stretch;justify-content:center;overflow-y:auto;padding:clamp(12px,2vw,16px);}
+#screen-game{flex-direction:row;align-items:stretch;justify-content:center;overflow-y:auto;padding:clamp(8px,2vw,16px);
+  -webkit-overflow-scrolling:touch;}
 .game-layout{display:grid;grid-template-columns:190px auto 250px;gap:14px;align-items:center;width:min(740px,100%);margin:auto;}
-@media(max-width:768px){.game-layout{grid-template-columns:1fr;max-width:400px;}#chat-col{display:none!important;}}
+@media(max-width:768px){
+  .game-layout{grid-template-columns:1fr;max-width:min(400px,95vw);gap:12px;}
+  #chat-col{display:none!important;}
+  .player-panel{padding:10px 14px!important;}
+  #board{gap:4px!important;padding:8px!important;}
+  .cell{width:clamp(65px,20vw,90px)!important;height:clamp(65px,20vw,90px)!important;}
+}
 @media(min-width:769px) and (max-width:900px){.game-layout{grid-template-columns:150px auto 200px;gap:10px;}}
 
 .player-panel{background:var(--s1);border:1px solid rgba(255,255,255,0.07);border-radius:18px;padding:clamp(14px,3vw,20px);
   transition:border-color 0.4s,box-shadow 0.4s,transform 0.3s;}
-@media(max-width:768px){.player-panel{display:flex;align-items:center;gap:16px;padding:12px 16px;}}
+@media(max-width:768px){.player-panel{display:flex;align-items:center;gap:16px;padding:12px 16px;}
+  .pp-symbol{margin-bottom:0;font-size:clamp(1.5rem,8vw,2rem)!important;}
+  .pp-score{margin-top:0;margin-left:auto;font-size:clamp(1.5rem,8vw,2rem)!important;}
+  .pp-turn{margin-top:0;}
+  .pp-name{font-size:clamp(0.6rem,3vw,0.7rem)!important;}
+  .pp-role{font-size:clamp(0.45rem,2.5vw,0.5rem)!important;}
+}
 .player-panel.active-x{border-color:rgba(255,77,109,0.55);box-shadow:var(--gx),inset 0 0 30px rgba(255,77,109,0.05);transform:translateY(-2px);}
 .player-panel.active-o{border-color:rgba(77,255,219,0.55);box-shadow:var(--go),inset 0 0 30px rgba(77,255,219,0.05);transform:translateY(-2px);}
 .pp-symbol{font-family:'Orbitron',sans-serif;font-size:clamp(1.8rem,5vw,2.2rem);font-weight:900;margin-bottom:10px;}
@@ -686,41 +713,54 @@ function initSpace(){
       ctx.restore();
     });
     
-    // Planets with realistic shading
+    // Planets with realistic 3D sphere rendering
     planets.forEach(p=>{
-      // Shadow side
-      const shadowG=ctx.createRadialGradient(p.x+p.r*0.4,p.y+p.r*0.4,0,p.x,p.y,p.r);
-      shadowG.addColorStop(0,'rgba(0,0,0,0)');
-      shadowG.addColorStop(0.7,'rgba(0,0,0,0.6)');
-      shadowG.addColorStop(1,'rgba(0,0,0,0.9)');
+      const ctx=this.ctx;
       
-      // Main planet with lighting
-      const g=ctx.createRadialGradient(p.x-p.r*0.35,p.y-p.r*0.35,p.r*0.1,p.x,p.y,p.r);
-      const baseColor=p.color;
-      g.addColorStop(0,baseColor.replace('%)',`%,${70}%)`));
-      g.addColorStop(0.4,baseColor);
-      g.addColorStop(0.8,baseColor.replace('%)',`%,${25}%)`));
-      g.addColorStop(1,baseColor.replace('%)',`%,${10}%)`));
+      // Create realistic 3D sphere using multiple gradient layers
+      // Base sphere with terminator (day/night boundary)
+      const lightAngle=-Math.PI/4; // Light from top-left
+      const lightX=p.x+Math.cos(lightAngle)*p.r*0.5;
+      const lightY=p.y+Math.sin(lightAngle)*p.r*0.5;
       
-      ctx.fillStyle=g;
-      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();
+      // Main sphere gradient (lit side)
+      const mainG=ctx.createRadialGradient(lightX,lightY,0,p.x,p.y,p.r);
+      mainG.addColorStop(0,p.color.replace(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/,(m,h,s,l)=>`hsl(${h},${s}%,${Math.min(95,parseInt(l)+40)}%)`));
+      mainG.addColorStop(0.25,p.color.replace(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/,(m,h,s,l)=>`hsl(${h},${s}%,${Math.min(85,parseInt(l)+20)}%)`));
+      mainG.addColorStop(0.5,p.color);
+      mainG.addColorStop(0.75,p.color.replace(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/,(m,h,s,l)=>`hsl(${h},${Math.max(20,parseInt(s)-10)}%,${Math.max(15,parseInt(l)-20)}%)`));
+      mainG.addColorStop(1,p.color.replace(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/,(m,h,s,l)=>`hsl(${h},${Math.max(10,parseInt(s)-20)}%,${Math.max(5,parseInt(l)-35)}%)`));
       
-      // Craters
-      if(p.craters){
-        ctx.globalAlpha=0.15;
-        for(let i=0;i<8;i++){
-          const cx=p.x+(Math.random()-0.5)*p.r*1.4;
-          const cy=p.y+(Math.random()-0.5)*p.r*1.4;
-          const cr=p.r*0.1+Math.random()*p.r*0.15;
-          ctx.fillStyle='rgba(0,0,0,0.4)';
-          ctx.beginPath();ctx.arc(cx,cy,cr,0,Math.PI*2);ctx.fill();
-        }
-        ctx.globalAlpha=1;
-      }
+      ctx.fillStyle=mainG;
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fill();
       
-      // Shadow overlay
-      ctx.fillStyle=shadowG;
-      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();
+      // Terminator shadow (creates 3D sphere effect)
+      const shadowAngle=lightAngle+Math.PI;
+      const shadowX=p.x+Math.cos(shadowAngle)*p.r*0.3;
+      const shadowY=p.y+Math.sin(shadowAngle)*p.r*0.3;
+      const termG=ctx.createRadialGradient(shadowX,shadowY,p.r*0.3,shadowX,shadowY,p.r*1.2);
+      termG.addColorStop(0,'rgba(0,0,0,0.7)');
+      termG.addColorStop(0.5,'rgba(0,0,0,0.4)');
+      termG.addColorStop(0.8,'rgba(0,0,0,0.1)');
+      termG.addColorStop(1,'rgba(0,0,0,0)');
+      
+      ctx.fillStyle=termG;
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fill();
+      
+      // Specular highlight (makes it look glossy/3D)
+      const specG=ctx.createRadialGradient(lightX,lightY,0,lightX,lightY,p.r*0.4);
+      specG.addColorStop(0,'rgba(255,255,255,0.3)');
+      specG.addColorStop(0.5,'rgba(255,255,255,0.1)');
+      specG.addColorStop(1,'rgba(255,255,255,0)');
+      
+      ctx.fillStyle=specG;
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fill();
       
       // Atmosphere glow
       if(p.atmosphere){
