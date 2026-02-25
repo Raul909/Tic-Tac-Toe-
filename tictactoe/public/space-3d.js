@@ -22,6 +22,78 @@
   renderer.outputEncoding = THREE.sRGBEncoding;
   camera.position.set(0, 25, 90);
   
+  // Interactive Cursor Effects
+  const mouse = { x: 0, y: 0, targetX: 0, targetY: 0 };
+  const cursorParticles = [];
+  
+  // Mouse move listener
+  document.addEventListener('mousemove', (e) => {
+    mouse.targetX = (e.clientX / window.innerWidth) * 2 - 1;
+    mouse.targetY = -(e.clientY / window.innerHeight) * 2 + 1;
+    
+    // Create cursor trail particles
+    if (Math.random() < 0.3) {
+      createCursorParticle(e.clientX, e.clientY);
+    }
+  });
+  
+  // Touch support for mobile
+  document.addEventListener('touchmove', (e) => {
+    if (e.touches.length > 0) {
+      const touch = e.touches[0];
+      mouse.targetX = (touch.clientX / window.innerWidth) * 2 - 1;
+      mouse.targetY = -(touch.clientY / window.innerHeight) * 2 + 1;
+      
+      if (Math.random() < 0.2) {
+        createCursorParticle(touch.clientX, touch.clientY);
+      }
+    }
+  });
+  
+  function createCursorParticle(x, y) {
+    const geometry = new THREE.SphereGeometry(0.5, 8, 8);
+    const material = new THREE.MeshBasicMaterial({
+      color: new THREE.Color().setHSL(Math.random(), 0.8, 0.6),
+      transparent: true,
+      opacity: 0.8,
+      blending: THREE.AdditiveBlending
+    });
+    const particle = new THREE.Mesh(geometry, material);
+    
+    // Convert screen to world position
+    const vector = new THREE.Vector3(
+      (x / window.innerWidth) * 2 - 1,
+      -(y / window.innerHeight) * 2 + 1,
+      0.5
+    );
+    vector.unproject(camera);
+    const dir = vector.sub(camera.position).normalize();
+    const distance = -camera.position.z / dir.z;
+    const pos = camera.position.clone().add(dir.multiplyScalar(distance));
+    
+    particle.position.copy(pos);
+    particle.userData = {
+      velocity: new THREE.Vector3(
+        (Math.random() - 0.5) * 0.5,
+        (Math.random() - 0.5) * 0.5,
+        (Math.random() - 0.5) * 0.5
+      ),
+      life: 1
+    };
+    
+    scene.add(particle);
+    cursorParticles.push(particle);
+  }
+  
+  // Camera follows mouse
+  function updateCameraFromMouse() {
+    mouse.x += (mouse.targetX - mouse.x) * 0.05;
+    mouse.y += (mouse.targetY - mouse.y) * 0.05;
+    
+    camera.position.x += mouse.x * 2;
+    camera.position.y += mouse.y * 2;
+  }
+  
   // Weather system for background
   let bgWeatherParticles = null;
   let currentBgWeather = 'clear';
@@ -391,7 +463,7 @@
   accentLight.position.set(0, 80, 50);
   scene.add(accentLight);
   
-  // Optimized Shooting Stars
+  // Enhanced Realistic Shooting Stars
   const shootingStars = [];
   
   function createShootingStar() {
@@ -399,10 +471,18 @@
     const positions = [];
     const colors = [];
     
-    for (let i = 0; i < 15; i++) {
+    // Longer trail for more realistic look
+    for (let i = 0; i < 25; i++) {
       positions.push(0, 0, 0);
-      const intensity = 1 - (i / 15);
-      colors.push(1, 0.95, 0.8 + intensity * 0.2);
+      const intensity = 1 - (i / 25);
+      // Bright white-blue core fading to orange tail
+      if (i < 5) {
+        colors.push(1, 1, 1); // Bright white core
+      } else if (i < 15) {
+        colors.push(1, 0.95, 0.7 + intensity * 0.3); // Yellow-white
+      } else {
+        colors.push(1, 0.6 + intensity * 0.4, 0.3); // Orange tail
+      }
     }
     
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
@@ -411,26 +491,29 @@
     const material = new THREE.LineBasicMaterial({
       vertexColors: true,
       transparent: true,
-      opacity: 0.9,
+      opacity: 1,
       blending: THREE.AdditiveBlending,
-      depthWrite: false
+      depthWrite: false,
+      linewidth: 2
     });
     
     const line = new THREE.Line(geometry, material);
     
+    // Random starting position (higher up and further out)
     const angle = Math.random() * Math.PI * 2;
-    const distance = 150 + Math.random() * 250;
+    const distance = 200 + Math.random() * 400;
     line.position.set(
       Math.cos(angle) * distance,
-      40 + Math.random() * 80,
+      80 + Math.random() * 120,
       Math.sin(angle) * distance
     );
     
-    const speed = 2.5 + Math.random() * 2;
+    // Faster speed for more dramatic effect
+    const speed = 3.5 + Math.random() * 2.5;
     const direction = new THREE.Vector3(
-      (Math.random() - 0.5) * 1.5,
-      -1.2 - Math.random() * 0.5,
-      (Math.random() - 0.5) * 1.5
+      (Math.random() - 0.5) * 2,
+      -1.5 - Math.random() * 0.8,
+      (Math.random() - 0.5) * 2
     ).normalize();
     
     scene.add(line);
@@ -439,15 +522,17 @@
       line: line,
       velocity: direction.multiplyScalar(speed),
       life: 1,
-      positions: positions
+      positions: positions,
+      trailLength: 0
     };
   }
   
+  // More frequent shooting stars
   setInterval(() => {
-    if (Math.random() < 0.25 && shootingStars.length < 3) {
+    if (Math.random() < 0.4 && shootingStars.length < 5) {
       shootingStars.push(createShootingStar());
     }
-  }, 3000);
+  }, 2000);
   
   // Detailed Asteroid Belt
   const asteroidGeometry = new THREE.DodecahedronGeometry(0.5, 0);
@@ -540,14 +625,33 @@
       asteroid.mesh.rotation.y += asteroid.rotationSpeed * 0.7;
     });
     
-    // Shooting stars
+    // Shooting stars with realistic trail
     for (let i = shootingStars.length - 1; i >= 0; i--) {
       const star = shootingStars[i];
-      star.line.position.add(star.velocity);
-      star.life -= 0.015;
-      star.line.material.opacity = star.life * 0.9;
       
-      if (star.life <= 0) {
+      // Update trail positions
+      const positions = star.line.geometry.attributes.position.array;
+      for (let j = positions.length - 3; j >= 3; j -= 3) {
+        positions[j] = positions[j - 3];
+        positions[j + 1] = positions[j - 2];
+        positions[j + 2] = positions[j - 1];
+      }
+      
+      // Update head position
+      positions[0] = star.line.position.x;
+      positions[1] = star.line.position.y;
+      positions[2] = star.line.position.z;
+      star.line.geometry.attributes.position.needsUpdate = true;
+      
+      // Move shooting star
+      star.line.position.add(star.velocity);
+      star.life -= 0.012;
+      star.line.material.opacity = star.life;
+      
+      // Add slight gravity curve
+      star.velocity.y -= 0.02;
+      
+      if (star.life <= 0 || star.line.position.y < -50) {
         scene.remove(star.line);
         star.line.geometry.dispose();
         star.line.material.dispose();
@@ -578,6 +682,25 @@
     camera.position.x = Math.sin(time) * 4;
     camera.position.y = 25 + Math.cos(time * 0.7) * 2;
     camera.lookAt(0, 0, -50);
+    
+    // Interactive camera follow mouse
+    updateCameraFromMouse();
+    
+    // Update cursor particles
+    for (let i = cursorParticles.length - 1; i >= 0; i--) {
+      const particle = cursorParticles[i];
+      particle.position.add(particle.userData.velocity);
+      particle.userData.life -= 0.02;
+      particle.material.opacity = particle.userData.life * 0.8;
+      particle.scale.setScalar(1 + (1 - particle.userData.life) * 2);
+      
+      if (particle.userData.life <= 0) {
+        scene.remove(particle);
+        particle.geometry.dispose();
+        particle.material.dispose();
+        cursorParticles.splice(i, 1);
+      }
+    }
     
     renderer.render(scene, camera);
   }
