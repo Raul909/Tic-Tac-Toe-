@@ -22,16 +22,16 @@
   renderer.outputEncoding = THREE.sRGBEncoding;
   camera.position.set(0, 25, 90);
   
-  // Optimized Starfield with Instancing
+  // Highly Detailed Starfield
   const starGeometry = new THREE.BufferGeometry();
   const starVertices = [];
   const starColors = [];
   const starSizes = [];
   
-  for (let i = 0; i < 12000; i++) {
-    const x = (Math.random() - 0.5) * 2500;
-    const y = (Math.random() - 0.5) * 2500;
-    const z = (Math.random() - 0.5) * 2500;
+  for (let i = 0; i < 20000; i++) {
+    const x = (Math.random() - 0.5) * 3000;
+    const y = (Math.random() - 0.5) * 3000;
+    const z = (Math.random() - 0.5) * 3000;
     starVertices.push(x, y, z);
     
     // Realistic star colors based on temperature
@@ -48,7 +48,7 @@
       starColors.push(1.0, 0.7, 0.6); // Red dwarfs
     }
     
-    starSizes.push(Math.random() * 1.8 + 0.4);
+    starSizes.push(Math.random() * 2.2 + 0.3);
   }
   
   starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
@@ -56,7 +56,7 @@
   starGeometry.setAttribute('size', new THREE.Float32BufferAttribute(starSizes, 1));
   
   const starMaterial = new THREE.PointsMaterial({ 
-    size: 1.2,
+    size: 1.4,
     vertexColors: true,
     transparent: true,
     opacity: 0.95,
@@ -68,15 +68,15 @@
   const stars = new THREE.Points(starGeometry, starMaterial);
   scene.add(stars);
   
-  // Nebula with better performance
+  // Enhanced Nebula with more particles
   const nebulaGeometry = new THREE.BufferGeometry();
   const nebulaVertices = [];
   const nebulaColors = [];
   
-  for (let i = 0; i < 2000; i++) {
+  for (let i = 0; i < 4000; i++) {
     const theta = Math.random() * Math.PI * 2;
     const phi = Math.random() * Math.PI;
-    const r = 700 + Math.random() * 500;
+    const r = 700 + Math.random() * 600;
     
     nebulaVertices.push(
       r * Math.sin(phi) * Math.cos(theta),
@@ -84,23 +84,26 @@
       r * Math.cos(phi)
     );
     
-    // Purple/cyan nebula
-    const intensity = Math.random() * 0.4;
-    nebulaColors.push(
-      0.2 + intensity * 0.8,
-      0.15 + intensity * 0.6,
-      0.7 + intensity
-    );
+    // Purple/cyan/pink nebula mix
+    const intensity = Math.random() * 0.5;
+    const colorType = Math.random();
+    if (colorType < 0.4) {
+      nebulaColors.push(0.2 + intensity * 0.8, 0.15 + intensity * 0.6, 0.7 + intensity); // Purple
+    } else if (colorType < 0.7) {
+      nebulaColors.push(0.1 + intensity * 0.5, 0.6 + intensity, 0.8 + intensity * 0.2); // Cyan
+    } else {
+      nebulaColors.push(0.8 + intensity * 0.2, 0.2 + intensity * 0.5, 0.6 + intensity); // Pink
+    }
   }
   
   nebulaGeometry.setAttribute('position', new THREE.Float32BufferAttribute(nebulaVertices, 3));
   nebulaGeometry.setAttribute('color', new THREE.Float32BufferAttribute(nebulaColors, 3));
   
   const nebulaMaterial = new THREE.PointsMaterial({
-    size: 10,
+    size: 12,
     vertexColors: true,
     transparent: true,
-    opacity: 0.18,
+    opacity: 0.2,
     blending: THREE.AdditiveBlending,
     depthWrite: false
   });
@@ -108,11 +111,46 @@
   const nebula = new THREE.Points(nebulaGeometry, nebulaMaterial);
   scene.add(nebula);
   
+  // Distant Galaxies
+  const galaxyGeometry = new THREE.BufferGeometry();
+  const galaxyVertices = [];
+  const galaxyColors = [];
+  
+  for (let i = 0; i < 1500; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const radius = 1200 + Math.random() * 400;
+    const height = (Math.random() - 0.5) * 200;
+    
+    galaxyVertices.push(
+      Math.cos(angle) * radius,
+      height,
+      Math.sin(angle) * radius
+    );
+    
+    const brightness = Math.random() * 0.3 + 0.1;
+    galaxyColors.push(0.9 + brightness, 0.8 + brightness, 0.6 + brightness);
+  }
+  
+  galaxyGeometry.setAttribute('position', new THREE.Float32BufferAttribute(galaxyVertices, 3));
+  galaxyGeometry.setAttribute('color', new THREE.Float32BufferAttribute(galaxyColors, 3));
+  
+  const galaxyMaterial = new THREE.PointsMaterial({
+    size: 15,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.12,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  });
+  
+  const galaxy = new THREE.Points(galaxyGeometry, galaxyMaterial);
+  scene.add(galaxy);
+  
   // Realistic Planets with PBR materials
   const planets = [];
   
   function createPlanet(radius, color, roughness, metalness, position, hasRings = false, hasAtmosphere = false, atmosphereColor = null) {
-    const geometry = new THREE.SphereGeometry(radius, 48, 48);
+    const geometry = new THREE.SphereGeometry(radius, 64, 64);
     const material = new THREE.MeshStandardMaterial({ 
       color: color,
       roughness: roughness,
@@ -211,9 +249,31 @@
   }
   sun.add(sunGlow);
   
+  // Complete Solar System with All Planets
+  // Mercury - closest to sun
+  const mercury = createPlanet(2.5, 0x8C7853, 0.95, 0.1, { x: -80, y: 5, z: -40 }, false, false);
+  planets.push({ mesh: mercury, speed: 0.0015, radius: 30, angle: 0, rotationSpeed: 0.004 });
+  
+  // Venus - bright morning star
+  const venus = createPlanet(3.8, 0xFFC649, 0.5, 0.1, { x: 25, y: 10, z: -50 }, false, true, 0xFFE4B5);
+  planets.push({ mesh: venus, speed: 0.001, radius: 40, angle: Math.PI / 4, rotationSpeed: 0.005 });
+  
   // Earth - blue marble with atmosphere
   const earth = createPlanet(4.5, 0x2E5F8C, 0.7, 0.1, { x: 40, y: -15, z: -60 }, false, true, 0x4A90E2);
   planets.push({ mesh: earth, speed: 0.0008, radius: 50, angle: 0, rotationSpeed: 0.01 });
+  
+  // Moon - orbiting Earth
+  const moonGeometry = new THREE.SphereGeometry(1.2, 32, 32);
+  const moonMaterial = new THREE.MeshStandardMaterial({
+    color: 0xCCCCCC,
+    roughness: 0.9,
+    metalness: 0.05
+  });
+  const moon = new THREE.Mesh(moonGeometry, moonMaterial);
+  moon.castShadow = true;
+  moon.receiveShadow = true;
+  earth.add(moon);
+  moon.position.set(8, 0, 0);
   
   // Mars - red planet
   const mars = createPlanet(3.2, 0xCD5C5C, 0.9, 0.05, { x: -50, y: 20, z: -70 }, false, false);
@@ -227,9 +287,14 @@
   const saturn = createPlanet(7.5, 0xE8D4A0, 0.7, 0.15, { x: -70, y: -25, z: -90 }, true, false);
   planets.push({ mesh: saturn, speed: 0.00015, radius: 80, angle: Math.PI * 1.5, rotationSpeed: 0.012 });
   
-  // Venus - bright morning star
-  const venus = createPlanet(3.8, 0xFFC649, 0.5, 0.1, { x: 25, y: 10, z: -50 }, false, true, 0xFFE4B5);
-  planets.push({ mesh: venus, speed: 0.001, radius: 40, angle: Math.PI / 4, rotationSpeed: 0.005 });
+  // Uranus - ice giant with tilt
+  const uranus = createPlanet(5.5, 0x4FD0E7, 0.6, 0.3, { x: 95, y: -30, z: -120 }, true, false);
+  uranus.rotation.z = Math.PI / 4; // Tilted rotation
+  planets.push({ mesh: uranus, speed: 0.0001, radius: 110, angle: Math.PI / 3, rotationSpeed: 0.009 });
+  
+  // Neptune - deep blue ice giant
+  const neptune = createPlanet(5.2, 0x4169E1, 0.65, 0.25, { x: -85, y: 15, z: -130 }, false, false);
+  planets.push({ mesh: neptune, speed: 0.00008, radius: 125, angle: Math.PI * 1.7, rotationSpeed: 0.01 });
   
   // Cinematic Three-Point Lighting System
   const ambientLight = new THREE.AmbientLight(0x1a1a2e, 0.4);
@@ -319,11 +384,11 @@
     }
   }, 3000);
   
-  // Optimized Asteroid Belt
+  // Detailed Asteroid Belt
   const asteroidGeometry = new THREE.DodecahedronGeometry(0.5, 0);
   const asteroids = [];
   
-  for (let i = 0; i < 60; i++) {
+  for (let i = 0; i < 120; i++) {
     const material = new THREE.MeshStandardMaterial({
       color: 0x555555,
       roughness: 0.95,
@@ -333,10 +398,10 @@
     const asteroid = new THREE.Mesh(asteroidGeometry, material);
     
     const angle = Math.random() * Math.PI * 2;
-    const distance = 105 + Math.random() * 25;
+    const distance = 105 + Math.random() * 30;
     asteroid.position.set(
       Math.cos(angle) * distance,
-      (Math.random() - 0.5) * 8,
+      (Math.random() - 0.5) * 12,
       Math.sin(angle) * distance
     );
     
@@ -346,7 +411,7 @@
       Math.random() * Math.PI
     );
     
-    const scale = 0.4 + Math.random() * 0.6;
+    const scale = 0.3 + Math.random() * 0.8;
     asteroid.scale.set(scale, scale, scale);
     asteroid.castShadow = true;
     
@@ -375,6 +440,7 @@
     // Subtle star rotation
     stars.rotation.y += 0.00008;
     nebula.rotation.y -= 0.00005;
+    galaxy.rotation.y += 0.00003;
     
     // Sun rotation with glow
     sun.rotation.y += 0.001;
@@ -391,6 +457,14 @@
       planet.mesh.position.z = centerZ + Math.sin(planet.angle) * planet.radius;
       planet.mesh.rotation.y += planet.rotationSpeed;
     });
+    
+    // Moon orbits Earth
+    if (moon) {
+      moon.rotation.y += 0.02;
+      const moonOrbitAngle = currentTime * 0.0005;
+      moon.position.x = Math.cos(moonOrbitAngle) * 8;
+      moon.position.z = Math.sin(moonOrbitAngle) * 8;
+    }
     
     // Asteroid belt animation
     asteroids.forEach(asteroid => {

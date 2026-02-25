@@ -134,6 +134,19 @@ function app() {
           if (window.FW) window.FW.launch(color, color);
         }
       });
+      
+      this.socket.on('game:rematch-request', ({ from }) => {
+        console.log(`${from} wants a rematch`);
+      });
+      
+      this.socket.on('game:opponent-left', () => {
+        this.gameActive = false;
+        this.lobbyError = 'Opponent left the game';
+        setTimeout(() => {
+          this.screen = 'lobby';
+          this.lobbyError = '';
+        }, 2000);
+      });
     },
     
     async login() {
