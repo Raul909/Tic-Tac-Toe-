@@ -2,15 +2,13 @@
 
 <div align="center">
 
-![Tic Tac Toe Banner](./screenshots/banner.png)
-
 **A beautiful, real-time multiplayer Tic Tac Toe game with stunning space visuals**
 
 [![Live Demo](https://img.shields.io/badge/demo-live-success?style=for-the-badge)](https://tictactoe-multiplayer-kx9u.onrender.com/)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D16-brightgreen?style=for-the-badge&logo=node.js)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)](LICENSE)
 
-[Live Demo](https://tictactoe-multiplayer-kx9u.onrender.com/) • [Features](#features) • [Screenshots](#screenshots) • [Installation](#installation) • [Deployment](#deployment)
+[Live Demo](https://tictactoe-multiplayer-kx9u.onrender.com/) • [Features](#features) • [Installation](#installation) • [MongoDB Setup](#mongodb-setup) • [Deployment](#deployment)
 
 </div>
 
@@ -18,15 +16,7 @@
 
 ## 📺 Video Tutorial
 
-<div align="center">
-
-[![Watch the tutorial](./screenshots/video-thumbnail.png)](./screenshots/demo-video.mp4)
-
-**Click to watch: Complete walkthrough of features and gameplay**
-
-</div>
-
-> **Note:** See [How to Add Screenshots](#how-to-add-screenshots) section below for instructions on capturing and adding your own screenshots.
+> **Note:** Add your demo video to `screenshots/demo-video.mp4` and thumbnail to `screenshots/video-thumbnail.png`
 
 ---
 
@@ -68,55 +58,37 @@
 
 ## 📸 Screenshots
 
-> **Note:** Screenshots will appear here once you add them to the `screenshots/` folder. See the [How to Add Screenshots](#how-to-add-screenshots) section below.
+> **📌 Note:** Screenshots are placeholders. Add your own screenshots to the `screenshots/` folder to display them here.
+> See the [How to Add Screenshots](#how-to-add-screenshots) section for instructions.
+
+<details>
+<summary>Click to view screenshot placeholders</summary>
 
 ### 🏠 Authentication & Lobby
 
-<div align="center">
-
 | Login Screen | Lobby |
 |:---:|:---:|
-| ![Login](./screenshots/login.png) | ![Lobby](./screenshots/lobby.png) |
-
-*Secure authentication with beautiful cyberpunk UI*
-
-</div>
+| *Add login.png* | *Add lobby.png* |
 
 ### 🎮 Gameplay
 
-<div align="center">
-
 | Game Board | Victory Screen |
 |:---:|:---:|
-| ![Game](./screenshots/game.png) | ![Victory](./screenshots/victory.png) |
-
-*Real-time multiplayer with stunning visual effects*
-
-</div>
+| *Add game.png* | *Add victory.png* |
 
 ### 🌌 Space Gallery
 
-<div align="center">
-
 | Solar System | Nearby Stars | Nebulae |
 |:---:|:---:|:---:|
-| ![Solar](./screenshots/space-solar.png) | ![Stars](./screenshots/space-stars.png) | ![Nebulae](./screenshots/space-nebulae.png) |
-
-*Interactive 3D space exploration with real astronomical data*
-
-</div>
+| *Add space-solar.png* | *Add space-stars.png* | *Add space-nebulae.png* |
 
 ### 📱 Mobile Experience
 
-<div align="center">
-
 | Mobile Game | Mobile Lobby |
 |:---:|:---:|
-| ![Mobile Game](./screenshots/mobile-game.png) | ![Mobile Lobby](./screenshots/mobile-lobby.png) |
+| *Add mobile-game.png* | *Add mobile-lobby.png* |
 
-*Fully responsive design optimized for mobile devices*
-
-</div>
+</details>
 
 ---
 
@@ -229,7 +201,28 @@ See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed instructions.
 
 ---
 
-## 🗄️ Database
+## 🗄️ MongoDB Setup
+
+The app currently uses file-based storage (`data/users.json`). To upgrade to MongoDB:
+
+**See [MONGODB_SETUP.md](./tictactoe/MONGODB_SETUP.md) for complete guide**
+
+Quick steps:
+1. Create free MongoDB Atlas account
+2. Get connection string
+3. Install mongoose: `npm install mongoose`
+4. Update server.js (see guide)
+5. Add `MONGODB_URI` to Render environment variables
+
+Benefits:
+- ✅ Automatic backups
+- ✅ Better performance
+- ✅ Horizontal scaling
+- ✅ Free tier (512MB)
+
+---
+
+## 🗄️ Database (Current: File-Based)
 
 The app uses **file-based storage** (`data/users.json`) which:
 - ✅ Works automatically on Render
