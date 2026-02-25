@@ -3,6 +3,7 @@ services:
     name: tictactoe-multiplayer
     env: node
     plan: free
+    rootDir: tictactoe
     buildCommand: npm install
     startCommand: npm start
     envVars:
