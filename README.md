@@ -1,22 +1,80 @@
-# 🎮 Tic Tac Toe - Real-time Multiplayer
+# 🎮 Tic Tac Toe - Mission Control
 
 <div align="center">
 
-**A beautiful, real-time multiplayer Tic Tac Toe game with stunning space visuals**
+**A stunning real-time multiplayer Tic Tac Toe game with 3D space visuals and NASA-inspired UI**
 
 [![Live Demo](https://img.shields.io/badge/demo-live-success?style=for-the-badge)](https://tictactoe-multiplayer-kx9u.onrender.com/)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D16-brightgreen?style=for-the-badge&logo=node.js)](https://nodejs.org/)
+[![Three.js](https://img.shields.io/badge/Three.js-3D-blue?style=for-the-badge)](https://threejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)](LICENSE)
 
-[Live Demo](https://tictactoe-multiplayer-kx9u.onrender.com/) • [Features](#features) • [Installation](#installation) • [MongoDB Setup](#mongodb-setup) • [Deployment](#deployment)
+[🚀 Live Demo](https://tictactoe-multiplayer-kx9u.onrender.com/) • [✨ Features](#features) • [📦 Installation](#installation) • [🎥 Demo Video](#demo-video)
 
 </div>
 
 ---
 
-## 📺 Video Tutorial
+## 🎥 Demo Video
 
-> **Note:** Add your demo video to `screenshots/demo-video.mp4` and thumbnail to `screenshots/video-thumbnail.png`
+> **📹 Watch the full gameplay demo:**
+
+https://github.com/user-attachments/assets/your-video-id-here
+
+*To add your video:*
+1. Record gameplay using OBS Studio or screen recorder
+2. Upload to GitHub: Go to any issue → drag & drop video → copy URL
+3. Replace the URL above
+
+**Or embed YouTube:**
+```markdown
+[![Demo Video](https://img.youtube.com/vi/YOUR_VIDEO_ID/maxresdefault.jpg)](https://www.youtube.com/watch?v=YOUR_VIDEO_ID)
+```
+
+---
+
+## 📸 Screenshots
+
+### 🌌 3D Space Background & Authentication
+
+<div align="center">
+  <img src="screenshots/auth-screen.png" alt="Login Screen with 3D Space" width="800"/>
+  <p><em>NASA-themed login with realistic 3D planets and stars</em></p>
+</div>
+
+### 🎮 Gameplay Experience
+
+<div align="center">
+  <img src="screenshots/game-board.png" alt="Game Board" width="800"/>
+  <p><em>Mission control interface with real-time gameplay</em></p>
+</div>
+
+### 🏆 Victory & Social Sharing
+
+<div align="center">
+  <img src="screenshots/victory-share.png" alt="Victory Screen" width="800"/>
+  <p><em>Share your wins on Twitter, Facebook, WhatsApp, or download screenshot</em></p>
+</div>
+
+### 🌌 Interactive Space Gallery
+
+<div align="center">
+  <img src="screenshots/space-gallery.png" alt="Space Gallery" width="800"/>
+  <p><em>Explore solar system, nearby stars, and nebulae</em></p>
+</div>
+
+### 📱 Mobile Experience
+
+<div align="center">
+  <img src="screenshots/mobile-view.png" alt="Mobile View" width="400"/>
+  <p><em>Fully responsive design for mobile devices</em></p>
+</div>
+
+> **📌 To add your screenshots:**
+> 1. Create `screenshots/` folder in project root
+> 2. Take screenshots of your deployed app
+> 3. Save as: `auth-screen.png`, `game-board.png`, `victory-share.png`, `space-gallery.png`, `mobile-view.png`
+> 4. Commit and push to GitHub
 
 ---
 
@@ -25,70 +83,50 @@
 ### 🎮 Game Modes
 - **🌐 Online Multiplayer** - Play with friends using 4-character room codes
 - **🤖 AI Opponent** - Challenge an unbeatable minimax AI
-- **💬 Live Chat** - Chat with your opponent during games
-- **🔄 Rematch System** - Quick rematch with symbol swapping
+- **💬 Live Chat** - Real-time chat during multiplayer games
+- **🔄 Rematch System** - Quick rematch with automatic symbol swapping
 
-### 🔐 User System
-- **Secure Authentication** - Register/login with encrypted passwords
+### 🔐 Authentication
+- **Traditional Login** - Username and password
+- **Google OAuth** - One-click sign in with Google
+- **Facebook OAuth** - One-click sign in with Facebook
 - **Persistent Stats** - Track wins, losses, and draws
 - **Session Management** - Stay logged in across sessions
-- **Rate Limiting** - Protection against brute force attacks
 
-### 🌌 Space Gallery
-- **Interactive 3D Space Explorer** - Explore our solar system
-- **Real Astronomical Data** - Accurate planet information
-- **Nearby Stars** - Discover stars within 10 light-years
-- **Famous Nebulae** - View stunning cosmic clouds
-- **Zoom & Pan Controls** - Fully interactive experience
+### 🌌 3D Space Experience
+- **Three.js 3D Background** - Realistic planets orbiting the sun
+- **10,000 Stars** - Twinkling star field with depth
+- **Realistic Planets** - Earth, Mars, Jupiter, Saturn with rings
+- **Dynamic Lighting** - Point light from sun, ambient lighting
+- **Smooth Camera** - Gentle floating camera movement
 
-### 🎨 Visual Features
-- **Realistic 3D Planets** - Professional astronomical rendering
-- **Dynamic Weather Backgrounds** - Changes based on your location
-- **Shooting Stars** - Beautiful meteor animations
-- **Particle Effects** - Fireworks on victory
-- **Smooth Animations** - 60fps performance
+### 🌠 Interactive Space Gallery
+- **Solar System** - 9 planets with real astronomical data
+- **Nearby Stars** - 8 closest stars with temperatures and masses
+- **Nebulae** - 6 famous nebulae with distances and types
+- **Interactive Controls** - Drag to pan, zoom, rotate
+- **Detailed Info** - Click objects for scientific data
+
+### 🎉 Social Sharing
+- **Twitter** - Tweet your victories
+- **Facebook** - Share on Facebook
+- **WhatsApp** - Challenge friends directly
+- **Screenshot Download** - Beautiful victory images (PNG)
+- **Copy Link** - Shareable text with scores
+
+### 🎨 NASA Mission Control UI
+- **Glass Morphism** - Translucent panels with backdrop blur
+- **Corner Brackets** - NASA-style HUD elements
+- **Scan Line Effect** - Animated scan line overlay
+- **Telemetry Stats** - Zero-padded mission data (W-00, D-00, L-00)
+- **Exo 2 Font** - Official NASA typography
+- **Space Mono** - Monospace data display
 
 ### 📱 Responsive Design
 - **Mobile Optimized** - Perfect on phones and tablets
-- **Touch Friendly** - Large tap targets, smooth scrolling
+- **Touch Friendly** - Large tap targets
 - **Adaptive Layouts** - Works on any screen size
 - **iOS Support** - Full web app capabilities
-
----
-
-## 📸 Screenshots
-
-> **📌 Note:** Screenshots are placeholders. Add your own screenshots to the `screenshots/` folder to display them here.
-> See the [How to Add Screenshots](#how-to-add-screenshots) section for instructions.
-
-<details>
-<summary>Click to view screenshot placeholders</summary>
-
-### 🏠 Authentication & Lobby
-
-| Login Screen | Lobby |
-|:---:|:---:|
-| *Add login.png* | *Add lobby.png* |
-
-### 🎮 Gameplay
-
-| Game Board | Victory Screen |
-|:---:|:---:|
-| *Add game.png* | *Add victory.png* |
-
-### 🌌 Space Gallery
-
-| Solar System | Nearby Stars | Nebulae |
-|:---:|:---:|:---:|
-| *Add space-solar.png* | *Add space-stars.png* | *Add space-nebulae.png* |
-
-### 📱 Mobile Experience
-
-| Mobile Game | Mobile Lobby |
-|:---:|:---:|
-| *Add mobile-game.png* | *Add mobile-lobby.png* |
-
-</details>
 
 ---
 
@@ -118,34 +156,41 @@ Visit `http://localhost:3000` and start playing!
 
 ## 🎯 How to Play
 
-### 1️⃣ **Create an Account**
-- Click "Register" and choose a username (3-16 characters)
-- Set a secure password (minimum 8 characters)
-- Your stats will be tracked automatically
+### 1️⃣ **Sign In**
+Choose your preferred method:
+- **Google** - Click "Continue with Google"
+- **Facebook** - Click "Continue with Facebook"
+- **Traditional** - Enter username and password
 
 ### 2️⃣ **Start a Game**
 
 **Option A: Play with Friends**
-1. Click "Create Room" in the lobby
+1. Click "LAUNCH ROOM" in the lobby
 2. Share the 4-character code with your friend
-3. They click "Join" and enter the code
+3. They click "DOCK" and enter the code
 4. Game starts automatically!
 
 **Option B: Play vs AI**
-1. Click "Play vs AI"
-2. Challenge the unbeatable AI
-3. Try to beat the minimax algorithm!
+1. Click "ENGAGE AI"
+2. Challenge the unbeatable minimax algorithm
+3. Try to beat the AI!
 
 ### 3️⃣ **During the Game**
 - Click cells to make your move
-- Chat with your opponent using the chat box
-- Watch for the victory fireworks!
-- Click "Rematch" to play again (symbols swap)
+- Chat with your opponent (multiplayer only)
+- Watch the 3D space background
+- See real-time score updates
 
-### 4️⃣ **Explore Space**
-- Click the 🌌 icon in the lobby
+### 4️⃣ **After Winning**
+- See victory animation with fireworks
+- Share on social media (Twitter, Facebook, WhatsApp)
+- Download victory screenshot
+- Click "RE-ENGAGE" for rematch
+
+### 5️⃣ **Explore Space**
+- Click 🌌 SPACE button in lobby
 - Switch between Solar System, Stars, and Nebulae
-- Click objects to see detailed information
+- Click objects for detailed information
 - Drag to pan, scroll to zoom
 
 ---
@@ -156,19 +201,26 @@ Visit `http://localhost:3000` and start playing!
 - **Node.js** - Runtime environment
 - **Express** - Web framework
 - **Socket.IO** - Real-time communication
+- **MongoDB** - Database (optional, file-based fallback)
 - **bcryptjs** - Password hashing
 - **UUID** - Token generation
 
 ### Frontend
-- **Vanilla JavaScript** - No frameworks, pure performance
-- **HTML5 Canvas** - Stunning visual effects
-- **CSS3** - Modern animations and layouts
+- **Alpine.js** - Reactive framework (21KB)
+- **Tailwind CSS** - Utility-first CSS
+- **Three.js** - 3D graphics library
+- **Vanilla Canvas** - Space gallery rendering
 - **Socket.IO Client** - Real-time updates
+
+### Authentication
+- **Google OAuth 2.0** - Google Sign-In
+- **Facebook Login** - Facebook OAuth
+- **JWT Sessions** - Secure token-based auth
 
 ### Security
 - **HttpOnly Cookies** - XSS protection
 - **Rate Limiting** - Brute force prevention
-- **Input Sanitization** - SQL injection prevention
+- **Input Sanitization** - Injection prevention
 - **CORS** - Cross-origin protection
 
 ---
@@ -189,8 +241,13 @@ Visit `http://localhost:3000` and start playing!
    - Render auto-detects `render.yaml`
 
 3. **Set Environment Variables**
-   - `NODE_ENV` = `production`
-   - `ALLOWED_ORIGINS` = `https://your-app.onrender.com`
+   ```
+   NODE_ENV=production
+   ALLOWED_ORIGINS=https://your-app.onrender.com
+   MONGODB_URI=your-mongodb-connection-string (optional)
+   GOOGLE_CLIENT_ID=your-google-client-id (optional)
+   FACEBOOK_APP_ID=your-facebook-app-id (optional)
+   ```
 
 4. **Deploy!**
    - Click "Create Web Service"
@@ -201,88 +258,64 @@ See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed instructions.
 
 ---
 
-## 🗄️ MongoDB Setup
+## 🔐 OAuth Setup (Optional)
 
-The app currently uses file-based storage (`data/users.json`). To upgrade to MongoDB:
+### Google Sign-In
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create project and enable Google Sign-In API
+3. Create OAuth Client ID
+4. Add authorized origins: `http://localhost:3000`, `https://your-app.onrender.com`
+5. Copy Client ID to `public/app.js`
 
-**See [MONGODB_SETUP.md](./tictactoe/MONGODB_SETUP.md) for complete guide**
+**Full guide:** [GOOGLE_OAUTH_SETUP.md](./GOOGLE_OAUTH_SETUP.md)
 
-Quick steps:
-1. Create free MongoDB Atlas account
-2. Get connection string
-3. Install mongoose: `npm install mongoose`
-4. Update server.js (see guide)
-5. Add `MONGODB_URI` to Render environment variables
+### Facebook Login
+1. Go to [Facebook Developers](https://developers.facebook.com/)
+2. Create app and add Facebook Login
+3. Configure OAuth redirect URIs
+4. Copy App ID to `public/app.js`
 
-Benefits:
-- ✅ Automatic backups
-- ✅ Better performance
-- ✅ Horizontal scaling
-- ✅ Free tier (512MB)
+**Full guide:** [FACEBOOK_OAUTH_SETUP.md](./FACEBOOK_OAUTH_SETUP.md)
 
 ---
 
-## 🗄️ Database (Current: File-Based)
+## 🗄️ Database Setup (Optional)
 
-The app uses **file-based storage** (`data/users.json`) which:
-- ✅ Works automatically on Render
-- ✅ Requires zero configuration
-- ✅ Persists across deployments
-- ✅ Perfect for small to medium traffic
+The app works out-of-the-box with **file-based storage** (`data/users.json`).
 
-For production scale (1000+ users), see [DATABASE_SETUP.md](./DATABASE_SETUP.md) for MongoDB migration guide.
+For production scale, upgrade to MongoDB:
+
+1. Create free MongoDB Atlas account
+2. Get connection string
+3. Add to `.env`: `MONGODB_URI=your-connection-string`
+4. Restart server
+
+**Full guide:** [MONGODB_SETUP.md](./MONGODB_SETUP.md)
 
 ---
 
 ## 🎨 Features in Detail
 
-### Real-time Multiplayer
-- WebSocket-based instant updates
-- Room-based matchmaking
-- Automatic reconnection handling
-- Turn-based gameplay with validation
-
-### AI Opponent
-- Minimax algorithm with alpha-beta pruning
-- Unbeatable difficulty
-- Instant move calculation
-- Perfect for practice
+### 3D Space Background
+- **Three.js Rendering** - Hardware-accelerated 3D graphics
+- **Realistic Planets** - Proper lighting and textures
+- **Orbital Mechanics** - Planets orbit the sun
+- **Star Field** - 10,000 stars with depth and twinkle
+- **Performance** - 60 FPS on desktop, 30-45 FPS on mobile
 
 ### Space Gallery
-- **Solar System**: 9 planets with real orbital data
-- **Nearby Stars**: 8 closest stars with temperatures and masses
-- **Nebulae**: 6 famous nebulae with distances and types
-- Interactive 3D rotation and zoom
-- Real astronomical data from NASA/ESA
+- **Solar System**: Sun, Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune
+- **Nearby Stars**: Proxima Centauri, Alpha Centauri A/B, Barnard's Star, Sirius A/B, etc.
+- **Nebulae**: Orion, Crab, Ring, Eagle, Helix, Horsehead
+- **Real Data**: Temperatures, masses, distances, orbital periods
+- **Interactive**: Drag, zoom, rotate, click for details
 
-### Dynamic Backgrounds
-- **Space Mode**: Realistic 3D planets and stars
-- **Rain Mode**: Animated raindrops (when raining at your location)
-- **Snow Mode**: Falling snowflakes (when snowing)
-- **Storm Mode**: Lightning and heavy rain
-- **Cloudy Mode**: Drifting clouds
-- Automatic detection using geolocation and weather API
-
----
-
-## 🧪 Testing
-
-Run the comprehensive test suite:
-
-```bash
-./test-suite.sh
-```
-
-Tests include:
-- ✅ User registration
-- ✅ User login
-- ✅ Duplicate username prevention
-- ✅ Password validation
-- ✅ Rate limiting
-- ✅ API endpoints
-- ✅ Database persistence
-
-See [TEST_RESULTS.md](./TEST_RESULTS.md) for detailed test reports.
+### Social Sharing
+- **Auto-Generated Images** - Victory screenshots with scores
+- **Pre-filled Messages** - Ready-to-share text
+- **Multiple Platforms** - Twitter, Facebook, WhatsApp
+- **One-Click Sharing** - Opens in new window
+- **Copy to Clipboard** - Fallback for any platform
 
 ---
 
@@ -293,13 +326,14 @@ See [TEST_RESULTS.md](./TEST_RESULTS.md) for detailed test reports.
 | **FPS** | 60 | 30-45 |
 | **Load Time** | < 2s | < 3s |
 | **Memory** | ~80MB | ~50MB |
-| **Bundle Size** | 72KB | 72KB |
+| **Bundle Size** | 150KB | 150KB |
 
 Optimizations:
-- Offscreen canvas for static elements
-- Object pooling for particles
-- Frame-based timing for smooth animations
-- Reduced particle count on mobile
+- Three.js for hardware-accelerated 3D
+- Alpine.js for minimal JavaScript overhead
+- Tailwind CSS for optimized styling
+- Canvas rendering for space gallery
+- Lazy loading for social SDKs
 
 ---
 
@@ -307,11 +341,12 @@ Optimizations:
 
 - **Password Hashing**: bcrypt with 10 salt rounds
 - **HttpOnly Cookies**: Prevents XSS attacks
-- **Rate Limiting**: 5 attempts per 15 minutes
+- **Rate Limiting**: 5 login attempts per 15 minutes
 - **Input Sanitization**: Prevents injection attacks
 - **CORS Protection**: Restricted origins
 - **Session Tokens**: UUID v4 generation
 - **Secure Cookies**: HTTPS-only in production
+- **OAuth Verification**: Server-side token validation
 
 ---
 
@@ -329,6 +364,7 @@ Minimum requirements:
 - ES6+ support
 - WebSocket support
 - Canvas API support
+- WebGL support (for Three.js)
 
 ---
 
@@ -353,9 +389,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - **Astronomical Data**: NASA, ESA
-- **Weather API**: Open-Meteo (free, no key required)
-- **Fonts**: Google Fonts (Orbitron, Space Mono)
-- **Inspiration**: Classic Tic Tac Toe with modern twist
+- **3D Graphics**: Three.js
+- **Fonts**: Google Fonts (Exo 2, Space Mono)
+- **Icons**: Heroicons, Font Awesome
+- **Inspiration**: NASA's Eyes on the Solar System
 
 ---
 
@@ -369,24 +406,33 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📚 Documentation
 
-- [DEPLOYMENT.md](./tictactoe/DEPLOYMENT.md) - Deployment guide
-- [DATABASE_SETUP.md](./tictactoe/DATABASE_SETUP.md) - Database configuration
-- [TEST_RESULTS.md](./tictactoe/TEST_RESULTS.md) - Test reports
-- [PRODUCTION_READY.md](./tictactoe/PRODUCTION_READY.md) - Production checklist
-- [FINAL_SUMMARY.md](./tictactoe/FINAL_SUMMARY.md) - Complete feature summary
+- [DEPLOYMENT.md](./DEPLOYMENT.md) - Deployment guide
+- [GOOGLE_OAUTH_SETUP.md](./GOOGLE_OAUTH_SETUP.md) - Google OAuth setup
+- [FACEBOOK_OAUTH_SETUP.md](./FACEBOOK_OAUTH_SETUP.md) - Facebook OAuth setup
+- [MONGODB_SETUP.md](./MONGODB_SETUP.md) - Database configuration
+- [SECURITY.md](./SECURITY.md) - Security best practices
 
 ---
 
 ## 🎯 Roadmap
 
+- [x] Real-time multiplayer
+- [x] AI opponent
+- [x] 3D space background
+- [x] Interactive space gallery
+- [x] Social sharing
+- [x] Google OAuth
+- [x] Facebook OAuth
 - [ ] Tournament mode
-- [ ] Leaderboard with rankings
+- [ ] Global leaderboard
 - [ ] Custom themes
 - [ ] Sound effects and music
 - [ ] Replay system
 - [ ] Friend system
 - [ ] Private messaging
 - [ ] Mobile app (React Native)
+- [ ] Achievements system
+- [ ] Daily challenges
 
 ---
 
@@ -402,9 +448,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🌟 Star this repo if you like it!
 
-Made with ❤️ by [Raul909](https://github.com/Raul909)
+Made with ❤️ and ☕ by [Raul909](https://github.com/Raul909)
 
-**[⬆ Back to Top](#-tic-tac-toe---real-time-multiplayer)**
+**[⬆ Back to Top](#-tic-tac-toe---mission-control)**
 
 </div>
 
@@ -412,71 +458,89 @@ Made with ❤️ by [Raul909](https://github.com/Raul909)
 
 ## 📸 How to Add Screenshots
 
-To add your own screenshots to this README:
+### Quick Guide
 
-### 1. Create Screenshots Folder
-```bash
-mkdir -p screenshots
-```
+1. **Create screenshots folder:**
+   ```bash
+   mkdir -p screenshots
+   ```
 
-### 2. Take Screenshots
+2. **Take screenshots of your deployed app:**
+   - Auth screen with 3D background
+   - Game board during play
+   - Victory screen with share buttons
+   - Space gallery
+   - Mobile view (use browser dev tools)
 
-Visit your live site: https://tictactoe-multiplayer-kx9u.onrender.com/
+3. **Save with these names:**
+   - `auth-screen.png` (1200x800px)
+   - `game-board.png` (1200x800px)
+   - `victory-share.png` (1200x800px)
+   - `space-gallery.png` (1200x800px)
+   - `mobile-view.png` (400x800px)
 
-**Required Screenshots:**
-- `banner.png` - Main banner (1200x400px)
-- `login.png` - Login screen
-- `lobby.png` - Lobby view
-- `game.png` - Active game
-- `victory.png` - Victory screen with fireworks
-- `space-solar.png` - Space gallery solar system
-- `space-stars.png` - Space gallery stars view
-- `space-nebulae.png` - Space gallery nebulae view
-- `mobile-game.png` - Mobile game view
-- `mobile-lobby.png` - Mobile lobby view
-- `video-thumbnail.png` - Video thumbnail (1280x720px)
+4. **Optimize images:**
+   ```bash
+   # Using ImageMagick
+   cd screenshots
+   for img in *.png; do
+     convert "$img" -resize 1200x -quality 85 "$img"
+   done
+   ```
 
-### 3. Record Demo Video
+5. **Commit and push:**
+   ```bash
+   git add screenshots/
+   git commit -m "Add screenshots"
+   git push
+   ```
+
+### Record Demo Video
 
 **Using OBS Studio (Free):**
 1. Download [OBS Studio](https://obsproject.com/)
 2. Set canvas to 1920x1080
-3. Record your screen showing:
-   - Registration/Login
-   - Creating a room
-   - Joining a room (use incognito window)
-   - Playing a game
-   - Victory animation
-   - Space gallery exploration
-   - Mobile view (use browser dev tools)
+3. Record:
+   - Login with Google/Facebook
+   - Create a room
+   - Join from incognito window
+   - Play a game
+   - Win and share
+   - Explore space gallery
 4. Export as MP4
-5. Save as `screenshots/demo-video.mp4`
+5. Upload to GitHub or YouTube
 
-**Using Browser:**
-- Chrome: Right-click → Inspect → Toggle device toolbar → Screenshot
-- Firefox: Right-click → Take Screenshot
-- Safari: Develop → Show Web Inspector → Screenshot
+**Upload to GitHub:**
+1. Go to any GitHub issue
+2. Drag and drop your video
+3. Copy the generated URL
+4. Add to README
 
-### 4. Optimize Images
+**Or upload to YouTube:**
+1. Upload video to YouTube
+2. Copy video ID from URL
+3. Add to README with embed code
 
-```bash
-# Install imagemagick (if not installed)
-# Ubuntu/Debian: sudo apt install imagemagick
-# macOS: brew install imagemagick
+---
 
-# Optimize all screenshots
-cd screenshots
-for img in *.png; do
-  convert "$img" -resize 1200x -quality 85 "$img"
-done
+## 🎬 Demo Video Template
+
+```markdown
+## 🎥 Live Demo
+
+[![Tic Tac Toe Mission Control - Full Gameplay](https://img.youtube.com/vi/YOUR_VIDEO_ID/maxresdefault.jpg)](https://www.youtube.com/watch?v=YOUR_VIDEO_ID)
+
+**Features shown in video:**
+- 3D space background with orbiting planets
+- Google and Facebook OAuth login
+- Creating and joining multiplayer rooms
+- Real-time gameplay with chat
+- Victory celebration with fireworks
+- Social sharing on Twitter, Facebook, WhatsApp
+- Screenshot download feature
+- Interactive space gallery exploration
 ```
 
-### 5. Commit and Push
+---
 
-```bash
-git add screenshots/
-git commit -m "Add screenshots and demo video"
-git push
-```
-
-Your README will now display all screenshots automatically!
+**README Last Updated:** February 26, 2026
