@@ -134,17 +134,24 @@ function app() {
     
     // Cinematic Helper
     setScreen(screenName) {
-      if (this.screen === screenName) return; this.screen = screenName;
+      if (this.screen === screenName) return; 
+      this.screen = screenName;
+      
+      // Auto-login if going to auth screen and token exists
+      if (screenName === 'auth') {
+        const token = localStorage.getItem('token');
+        if (token && !this.socket) {
+          this.connectSocket(token);
+        }
+      }
+      
       if (window.CinematicSpace && typeof window.CinematicSpace.triggerWarp === 'function') {
         window.CinematicSpace.triggerWarp();
       }
     },
 
     init() {
-      const token = localStorage.getItem('token');
-      if (token) {
-        this.connectSocket(token);
-      }
+      // Don't auto-connect - let user see landing page first
       this.initSpaceGallery();
       this.initGoogleSignIn();
       this.initWeatherSync();
