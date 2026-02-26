@@ -9,7 +9,8 @@ const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
 const rateLimiter = require('./rateLimiter');
 const mongoose = require('mongoose');
-const { checkWinner, generateRoomCode, validateRegistration, validateRoomJoin } = require('./utils');
+const { checkWinner, generateRoomCode } = require('./utils');
+const { handleAuthUser } = require('./auth-utils');
 
 // Load environment variables
 require('dotenv').config();
@@ -264,70 +265,11 @@ app.post('/api/auth/google', async (req, res) => {
           const googleId = googleUser.sub;
           const key = `google_${googleId}`;
           
-          // Check if user exists
-          let user;
-          if (useDB()) {
-            user = await User.findOne({ username: key });
-            if (!user) {
-              // Create new user
-              user = await User.create({
-                username: key,
-                displayName: name,
-                hash: '', // No password for Google users
-                email: email,
-                googleId: googleId,
-                wins: 0,
-                losses: 0,
-                draws: 0
-              });
-            }
-            // Update memory cache
-            users[key] = {
-              displayName: user.displayName,
-              hash: '',
-              wins: user.wins || 0,
-              losses: user.losses || 0,
-              draws: user.draws || 0,
-              email: email,
-              googleId: googleId
-            };
-          } else {
-            // File-based
-            if (!users[key]) {
-              users[key] = {
-                displayName: name,
-                hash: '',
-                wins: 0,
-                losses: 0,
-                draws: 0,
-                email: email,
-                googleId: googleId,
-                createdAt: Date.now()
-              };
-              saveUsers();
-            }
-            user = users[key];
-          }
-          
-          // Create session
-          const token = uuidv4();
-          sessions.set(token, key);
-          res.cookie('session', token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
-            maxAge: 7 * 24 * 60 * 60 * 1000
-          });
-          
-          res.json({
-            ok: true,
-            token,
-            username: user.displayName || name,
-            stats: {
-              wins: user.wins || 0,
-              losses: user.losses || 0,
-              draws: user.draws || 0
-            }
+          await handleAuthUser({
+            res,
+            userData: { displayName: name, email, providerId: googleId, key, providerName: "google" },
+            userStore: { User, users, saveUsers, useDB },
+            sessionStore: { sessions, uuidv4 }
           });
         } catch (e) {
           console.error('Google auth error:', e);
@@ -373,67 +315,11 @@ app.post('/api/auth/facebook', async (req, res) => {
           const email = fbUser.email || `fb_${fbId}@facebook.com`;
           const key = `facebook_${fbId}`;
           
-          // Check if user exists
-          let user;
-          if (useDB()) {
-            user = await User.findOne({ username: key });
-            if (!user) {
-              user = await User.create({
-                username: key,
-                displayName: name,
-                hash: '',
-                email: email,
-                facebookId: fbId,
-                wins: 0,
-                losses: 0,
-                draws: 0
-              });
-            }
-            users[key] = {
-              displayName: user.displayName,
-              hash: '',
-              wins: user.wins || 0,
-              losses: user.losses || 0,
-              draws: user.draws || 0,
-              email: email,
-              facebookId: fbId
-            };
-          } else {
-            if (!users[key]) {
-              users[key] = {
-                displayName: name,
-                hash: '',
-                wins: 0,
-                losses: 0,
-                draws: 0,
-                email: email,
-                facebookId: fbId,
-                createdAt: Date.now()
-              };
-              saveUsers();
-            }
-            user = users[key];
-          }
-          
-          // Create session
-          const token = uuidv4();
-          sessions.set(token, key);
-          res.cookie('session', token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
-            maxAge: 7 * 24 * 60 * 60 * 1000
-          });
-          
-          res.json({
-            ok: true,
-            token,
-            username: user.displayName || name,
-            stats: {
-              wins: user.wins || 0,
-              losses: user.losses || 0,
-              draws: user.draws || 0
-            }
+          await handleAuthUser({
+            res,
+            userData: { displayName: name, email, providerId: fbId, key, providerName: "facebook" },
+            userStore: { User, users, saveUsers, useDB },
+            sessionStore: { sessions, uuidv4 }
           });
         } catch (e) {
           console.error('Facebook auth error:', e);
