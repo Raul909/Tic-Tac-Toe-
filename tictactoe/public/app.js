@@ -1,7 +1,7 @@
 // Main Alpine.js Application
 function app() {
   return {
-    screen: 'auth',
+    screen: 'home',
     authTab: 'login',
     socket: null,
     user: { username: '', stats: { wins: 0, draws: 0, losses: 0 } },
