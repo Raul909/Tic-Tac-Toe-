@@ -9,7 +9,7 @@ const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
 const rateLimiter = require('./rateLimiter');
 const mongoose = require('mongoose');
-const { checkWinner, generateRoomCode } = require('./utils');
+const { checkWinner, generateRoomCode, validateRegistration } = require('./utils');
 
 // Load environment variables
 require('dotenv').config();
@@ -151,13 +151,9 @@ function getRoomForSocket(socketId) {
 // ── REST ENDPOINTS ────────────────────────────────────────────────────
 app.post('/api/register', authLimiter, async (req, res) => {
   const { username, password } = req.body || {};
-  if (!username?.trim() || !password) return res.json({ ok: false, error: 'Missing fields' });
-
-  const key = username.trim().toLowerCase();
-  if (key.length < 3) return res.json({ ok: false, error: 'Username too short (min 3 chars)' });
-  if (key.length > 16) return res.json({ ok: false, error: 'Username too long (max 16 chars)' });
-  if (!/^[a-z0-9_]+$/.test(key)) return res.json({ ok: false, error: 'Letters, numbers, underscores only' });
-  if (password.length < 8) return res.json({ ok: false, error: 'Password min 8 characters' });
+  const validation = validateRegistration(username, password);
+  if (!validation.ok) return res.json({ ok: false, error: validation.error });
+  const key = validation.key;
 
   const hash = await bcrypt.hash(password, 10);
 
