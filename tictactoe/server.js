@@ -8,6 +8,7 @@ const path = require('path');
 const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
 const mongoose = require('mongoose');
+const { checkWinner, generateRoomCode } = require('./utils');
 
 // Load environment variables
 require('dotenv').config();
@@ -101,28 +102,6 @@ const sessions = new Map(); // token -> userKey
 const socketUser = new Map(); // socketId -> userKey
 const userSocket = new Map(); // userKey -> socketId
 const rooms = new Map(); // roomCode -> roomObj
-
-const WINS = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
-
-function checkWinner(board) {
-  for (const line of WINS) {
-    const [a, b, c] = line;
-    if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-      return { winner: board[a], line };
-    }
-  }
-  if (board.every(Boolean)) return { draw: true, winner: null };
-  return null;
-}
-
-function generateRoomCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code;
-  do {
-    code = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-  } while (rooms.has(code));
-  return code;
-}
 
 function leaveCurrentRoom(socket) {
   for (const [code, room] of rooms.entries()) {
@@ -489,7 +468,7 @@ io.on('connection', (socket) => {
     if (!key) return socket.emit('error', 'Not authenticated');
     leaveCurrentRoom(socket);
 
-    const code = generateRoomCode();
+    const code = generateRoomCode(rooms);
     const room = {
       code,
       players: [{ socketId: socket.id, key, name: users[key].displayName, symbol: 'X' }],
