@@ -944,6 +944,12 @@
            :style="gameOverTitle.includes('COMPLETE') || gameOverTitle.includes('VICTORY') ? 'animation: victoryShake 0.5s ease-in-out' : ''"></div>
       <div class="text-nasa text-sm mb-6 tracking-wider" x-text="gameOverSubtitle"></div>
       
+      <!-- Space Fact -->
+      <div x-show="spaceFact" class="glass rounded-lg p-4 mb-6 border border-nasa/50 bg-nasa/5">
+        <div class="text-nasa text-xs tracking-widest mb-2">🌟 SPACE FACT</div>
+        <div class="text-sm text-gray-300" x-text="spaceFact"></div>
+      </div>
+      
       <!-- Social Share Section -->
       <div x-show="gameOverTitle.includes('COMPLETE') || gameOverTitle.includes('VICTORY')" class="mb-6 pb-6 border-b border-nasa/30">
         <div class="text-xs text-gray-400 mb-3 tracking-wider">SHARE YOUR VICTORY</div>

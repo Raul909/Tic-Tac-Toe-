@@ -734,6 +734,9 @@ function app() {
       this.gameActive = false;
       this.gameOver = true;
       
+      // Show random space fact
+      this.showRandomSpaceFact();
+      
       // Track statistics
       this.user.stats.gamesPlayed++;
       const gameEndTime = Date.now();
