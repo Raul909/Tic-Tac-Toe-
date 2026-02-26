@@ -65,7 +65,6 @@
     const particleCount = currentBgWeather === 'cloudy' ? 300 : 600;
     const geometry = new THREE.BufferGeometry();
     const positions = [];
-    const velocities = [];
     
     for (let i = 0; i < particleCount; i++) {
       positions.push(
@@ -73,19 +72,15 @@
         Math.random() * 300,
         (Math.random() - 0.5) * 500
       );
-      
-      if (currentBgWeather === 'cloudy') {
-        velocities.push(0, -0.05, 0);
-      } else if (currentBgWeather === 'rain') {
-        velocities.push(0, -1.5, 0);
-      } else {
-        velocities.push(0, -0.3, 0);
-      }
     }
     
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    geometry.setAttribute('velocity', new THREE.Float32BufferAttribute(velocities, 3));
     
+    // Determine vertical speed based on weather
+    let vy = -0.3;
+    if (currentBgWeather === 'cloudy') vy = -0.05;
+    else if (currentBgWeather === 'rain') vy = -1.5;
+
     const material = new THREE.PointsMaterial({
       size: currentBgWeather === 'rain' ? 0.5 : currentBgWeather === 'cloudy' ? 3 : 2,
       color: currentBgWeather === 'rain' ? 0x4A90E2 : currentBgWeather === 'cloudy' ? 0x666666 : 0xFFFFFF,
@@ -94,6 +89,48 @@
       blending: THREE.AdditiveBlending,
       depthWrite: false
     });
+
+    // Optimization: Shader-based movement to offload CPU
+    material.onBeforeCompile = (shader) => {
+        shader.uniforms.uTime = { value: 0 };
+        shader.uniforms.uSpeed = { value: vy };
+        shader.uniforms.uRangeY = { value: 350.0 }; // 300 - (-50)
+        shader.uniforms.uStartY = { value: 300.0 };
+
+        // Save reference to update it later
+        material.userData.shader = shader;
+
+        shader.vertexShader = 'uniform float uTime;\nuniform float uSpeed;\nuniform float uRangeY;\nuniform float uStartY;\n' + shader.vertexShader;
+
+        // Inject logic before projection
+        shader.vertexShader = shader.vertexShader.replace(
+            '#include <begin_vertex>',
+            `
+            vec3 transformed = vec3( position );
+
+            float traveled = uSpeed * uTime;
+            float newY = position.y + traveled;
+
+            // Calculate lap number (how many times it has wrapped)
+            float distFromTop = uStartY - newY;
+            float lap = floor(distFromTop / uRangeY);
+
+            // Wrap Y
+            transformed.y = uStartY - mod(distFromTop, uRangeY);
+
+            // Randomize X and Z on respawn (lap > 0)
+            if (lap > 0.0) {
+                // Use original position and lap as seed for stable randomness
+                vec2 seed = position.xz + vec2(lap * 13.0, lap * 7.0);
+                float randX = fract(sin(dot(seed, vec2(12.9898,78.233))) * 43758.5453);
+                float randZ = fract(sin(dot(seed, vec2(39.7867,27.345))) * 23456.7891);
+
+                transformed.x = (randX - 0.5) * 500.0;
+                transformed.z = (randZ - 0.5) * 500.0;
+            }
+            `
+        );
+    };
     
     bgWeatherParticles = new THREE.Points(geometry, material);
     scene.add(bgWeatherParticles);
@@ -592,21 +629,9 @@
     }
     
     // Background weather particles
-    if (bgWeatherParticles) {
-      const positions = bgWeatherParticles.geometry.attributes.position.array;
-      const velocities = bgWeatherParticles.geometry.attributes.velocity.array;
-      
-      for (let i = 0; i < positions.length; i += 3) {
-        positions[i + 1] += velocities[i + 1];
-        
-        if (positions[i + 1] < -50) {
-          positions[i + 1] = 300;
-          positions[i] = (Math.random() - 0.5) * 500;
-          positions[i + 2] = (Math.random() - 0.5) * 500;
-        }
-      }
-      
-      bgWeatherParticles.geometry.attributes.position.needsUpdate = true;
+    if (bgWeatherParticles && bgWeatherParticles.material.userData.shader) {
+      // Update shader time uniform instead of CPU loop
+      bgWeatherParticles.material.userData.shader.uniforms.uTime.value = currentTime * 0.001;
     }
     
     // Cinematic camera movement with mouse influence
