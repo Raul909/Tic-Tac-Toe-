@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { generateRoomCode, checkWinner } = require('./utils');
+const { generateRoomCode, checkWinner, validateRegistration } = require('./utils');
 
 test('generateRoomCode', async (t) => {
   await t.test('should return a 4-character string', () => {
@@ -87,5 +87,46 @@ test('checkWinner', async (t) => {
     ];
     const result = checkWinner(board);
     assert.strictEqual(result, null);
+  });
+});
+
+test('validateRegistration', async (t) => {
+  await t.test('should validate valid registration', () => {
+    const result = validateRegistration('validUser', 'validPass123');
+    assert.deepStrictEqual(result, { ok: true, key: 'validuser' });
+  });
+
+  await t.test('should fail if username too short', () => {
+    const result = validateRegistration('ab', 'validPass123');
+    assert.strictEqual(result.ok, false);
+    assert.match(result.error, /Username too short/);
+  });
+
+  await t.test('should fail if username too long', () => {
+    const result = validateRegistration('thisusernameiswaytoolong', 'validPass123');
+    assert.strictEqual(result.ok, false);
+    assert.match(result.error, /Username too long/);
+  });
+
+  await t.test('should fail if username has invalid characters', () => {
+    const result = validateRegistration('invalid@user', 'validPass123');
+    assert.strictEqual(result.ok, false);
+    assert.match(result.error, /Letters, numbers, underscores only/);
+  });
+
+  await t.test('should fail if password too short', () => {
+    const result = validateRegistration('user123', 'short');
+    assert.strictEqual(result.ok, false);
+    assert.match(result.error, /Password min 8 characters/);
+  });
+
+  await t.test('should fail if fields missing', () => {
+    let result = validateRegistration('', 'validPass123');
+    assert.strictEqual(result.ok, false);
+    assert.match(result.error, /Missing fields/);
+
+    result = validateRegistration('user123', '');
+    assert.strictEqual(result.ok, false);
+    assert.match(result.error, /Missing fields/);
   });
 });
