@@ -154,7 +154,39 @@ function getRoomForSocket(socketId) {
 
 // ── REST ENDPOINTS ────────────────────────────────────────────────────
 app.post('/api/register', authLimiter, async (req, res) => {
-  const { username, password } = req.body || {};
+  const { username, password, isGuest } = req.body || {};
+  
+  // Guest accounts have relaxed validation
+  if (isGuest) {
+    if (!username || !username.startsWith('Guest_')) {
+      return res.json({ ok: false, error: 'Invalid guest ID' });
+    }
+    const key = username.toLowerCase();
+    
+    // Check if guest ID already exists
+    if (users[key]) {
+      return res.json({ ok: false, error: 'Guest ID exists, retry' });
+    }
+    
+    const hash = await bcrypt.hash(password, 10);
+    users[key] = { 
+      displayName: username, 
+      hash, 
+      wins: 0, 
+      losses: 0, 
+      draws: 0, 
+      createdAt: Date.now(),
+      isGuest: true 
+    };
+    saveUsers();
+    
+    const token = uuidv4();
+    sessions.set(token, key);
+    res.cookie('session', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', maxAge: 7 * 24 * 60 * 60 * 1000 });
+    return res.json({ ok: true, token, username, stats: { wins: 0, losses: 0, draws: 0 } });
+  }
+  
+  // Regular account validation
   const validation = validateRegistration(username, password);
   if (!validation.ok) return res.json({ ok: false, error: validation.error });
   const key = validation.key;

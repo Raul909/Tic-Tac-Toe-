@@ -94,6 +94,7 @@ function app() {
     registerError: '',
     loginLoading: false,
     registerLoading: false,
+    guestLoading: false,
     
     // Lobby
     joinCode: '',
@@ -413,6 +414,45 @@ function app() {
     
     async register() {
       await this.performAuth('register');
+    },
+    
+    async guestLogin() {
+      this.guestLoading = true;
+      try {
+        // Generate guest ID like PUBG/CODM: Guest_XXXX
+        const guestId = 'Guest_' + Math.random().toString(36).substring(2, 6).toUpperCase();
+        const guestPassword = Math.random().toString(36).substring(2, 15);
+        
+        // Auto-register guest account
+        const res = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ 
+            username: guestId, 
+            password: guestPassword,
+            isGuest: true 
+          })
+        });
+        const data = await res.json();
+        
+        if (data.ok) {
+          // Store guest credentials for this session
+          localStorage.setItem('guestId', guestId);
+          localStorage.setItem('guestPassword', guestPassword);
+          this.handleAuthSuccess(data);
+        } else {
+          // If guest ID exists, try another one
+          if (data.error.includes('exists')) {
+            this.guestLogin(); // Retry with new ID
+          } else {
+            alert('Guest login failed. Please try again.');
+          }
+        }
+      } catch (e) {
+        alert('Connection error. Please try again.');
+      }
+      this.guestLoading = false;
     },
     
     logout() {

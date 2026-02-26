@@ -470,6 +470,25 @@
           </div>
         </div>
         
+        <!-- Guest Login Button -->
+        <button @click="guestLogin()" :disabled="guestLoading"
+                class="w-full bg-gradient-to-r from-gray-700 to-gray-600 text-white font-bold py-3 rounded hover:from-gray-600 hover:to-gray-500 transition disabled:opacity-50 tracking-wider mb-6 flex items-center justify-center gap-2">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+          </svg>
+          <span x-show="!guestLoading">🎮 PLAY AS GUEST</span>
+          <span x-show="guestLoading">CONNECTING...</span>
+        </button>
+        
+        <div class="relative mb-6">
+          <div class="absolute inset-0 flex items-center">
+            <div class="w-full border-t border-gray-700"></div>
+          </div>
+          <div class="relative flex justify-center text-xs">
+            <span class="px-2 bg-gray-900 text-gray-400">OR LOGIN WITH ACCOUNT</span>
+          </div>
+        </div>
+        
         <form x-show="authTab === 'login'" @submit.prevent="login()" class="space-y-4">
           <div>
             <label for="login-username" class="block text-xs text-nasa mb-1 tracking-widest">CALLSIGN</label>
