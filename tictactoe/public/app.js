@@ -165,64 +165,52 @@ function app() {
       });
     },
     
-    async login() {
-      this.loginError = '';
-      if (!this.loginForm.username || !this.loginForm.password) {
-        this.loginError = 'Please fill all fields';
+    handleAuthSuccess(data) {
+      localStorage.setItem('token', data.token);
+      this.user = { username: data.username, stats: data.stats };
+      this.connectSocket(data.token);
+    },
+
+    async performAuth(type) {
+      const isLogin = type === 'login';
+      const form = isLogin ? this.loginForm : this.registerForm;
+      const errorProp = isLogin ? 'loginError' : 'registerError';
+      const loadingProp = isLogin ? 'loginLoading' : 'registerLoading';
+      const endpoint = isLogin ? '/api/login' : '/api/register';
+
+      this[errorProp] = '';
+      if (!form.username || !form.password) {
+        this[errorProp] = 'Please fill all fields';
         return;
       }
       
-      this.loginLoading = true;
+      this[loadingProp] = true;
       try {
-        const res = await fetch('/api/login', {
+        const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify(this.loginForm)
+          body: JSON.stringify(form)
         });
         const data = await res.json();
         
         if (data.ok) {
-          localStorage.setItem('token', data.token);
-          this.user = { username: data.username, stats: data.stats };
-          this.connectSocket(data.token);
+          this.handleAuthSuccess(data);
         } else {
-          this.loginError = data.error;
+          this[errorProp] = data.error;
         }
       } catch (e) {
-        this.loginError = 'Connection error';
+        this[errorProp] = 'Connection error';
       }
-      this.loginLoading = false;
+      this[loadingProp] = false;
+    },
+
+    async login() {
+      await this.performAuth('login');
     },
     
     async register() {
-      this.registerError = '';
-      if (!this.registerForm.username || !this.registerForm.password) {
-        this.registerError = 'Please fill all fields';
-        return;
-      }
-      
-      this.registerLoading = true;
-      try {
-        const res = await fetch('/api/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify(this.registerForm)
-        });
-        const data = await res.json();
-        
-        if (data.ok) {
-          localStorage.setItem('token', data.token);
-          this.user = { username: data.username, stats: data.stats };
-          this.connectSocket(data.token);
-        } else {
-          this.registerError = data.error;
-        }
-      } catch (e) {
-        this.registerError = 'Connection error';
-      }
-      this.registerLoading = false;
+      await this.performAuth('register');
     },
     
     logout() {
@@ -258,9 +246,7 @@ function app() {
         const data = await res.json();
         
         if (data.ok) {
-          localStorage.setItem('token', data.token);
-          this.user = { username: data.username, stats: data.stats };
-          this.connectSocket(data.token);
+          this.handleAuthSuccess(data);
         } else {
           this.loginError = data.error || 'Google sign-in failed';
         }
@@ -299,9 +285,7 @@ function app() {
         const data = await res.json();
         
         if (data.ok) {
-          localStorage.setItem('token', data.token);
-          this.user = { username: data.username, stats: data.stats };
-          this.connectSocket(data.token);
+          this.handleAuthSuccess(data);
         } else {
           this.loginError = data.error || 'Facebook sign-in failed';
         }
