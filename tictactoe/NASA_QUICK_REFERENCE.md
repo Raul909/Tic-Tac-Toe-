@@ -66,6 +66,7 @@
 2. `nasa-solar-system.js` - Solar system animation (not yet integrated)
 3. `NASA_REDESIGN_COMPLETE.md` - Full documentation
 4. `START_SERVER.sh` - Convenient server launcher
+5. `../backups/index.html.backup` - Original file backup (moved from public)
 
 ### Unchanged
 - All JavaScript game logic
@@ -152,6 +153,14 @@ W-00  D-00  L-00
 | CPU Usage (game) | 15-25% | <5% |
 
 **Improvement**: Static background eliminates canvas animation overhead during gameplay.
+
+## Rollback
+
+```bash
+cd "/var/home/raul/Documents/Tic Tac Toe/tictactoe/public"
+cp ../backups/index.html.backup index.html
+rm nasa-theme.css nasa-solar-system.js
+```
 
 ## Next Steps
 
