@@ -1,9 +1,9 @@
-// Three.js 3D Space Background with Cinematic Lighting
+// Three.js 3D Space Background with Cinematic Lighting and Warp Effects
 (function() {
   const scene = new THREE.Scene();
   scene.fog = new THREE.FogExp2(0x000208, 0.0012);
   
-  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 4000);
   const renderer = new THREE.WebGLRenderer({ 
     canvas: document.getElementById('three-canvas'),
     alpha: true,
@@ -18,30 +18,41 @@
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.2;
+  renderer.toneMappingExposure = 1.3;
   renderer.outputEncoding = THREE.sRGBEncoding;
   camera.position.set(0, 25, 90);
   
-  // Interactive Mouse Effects - Elements react to cursor
+  // Cinematic Controller
+  const cinematic = {
+    warpFactor: 0,
+    targetWarp: 0,
+    baseSpeed: 1,
+    cameraDrift: { x: 0, y: 0, z: 0 },
+    triggerWarp: (duration = 1000) => {
+      cinematic.targetWarp = 1;
+      setTimeout(() => { cinematic.targetWarp = 0; }, duration);
+    }
+  };
+  window.CinematicSpace = cinematic;
+
+  // Interactive Mouse Effects
   const mouse = { x: 0, y: 0 };
   const mouseInfluence = { x: 0, y: 0 };
-  
   document.addEventListener('mousemove', (e) => {
     mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
   });
   
-  // Smooth mouse influence
-  function updateMouseInfluence() {
-    mouseInfluence.x += (mouse.x - mouseInfluence.x) * 0.05;
-    mouseInfluence.y += (mouse.y - mouseInfluence.y) * 0.05;
+  function updateMouseInfluence(dt) {
+    const smooth = 1.0 - Math.pow(0.05, dt);
+    mouseInfluence.x += (mouse.x - mouseInfluence.x) * smooth * 5;
+    mouseInfluence.y += (mouse.y - mouseInfluence.y) * smooth * 5;
   }
   
-  // Weather system for background
+  // Weather system
   let bgWeatherParticles = null;
   let currentBgWeather = 'clear';
   
-  // Sync with Space Gallery weather
   function syncBackgroundWeather() {
     if (window.SpaceGallery3D && window.SpaceGallery3D.currentWeather) {
       const weather = window.SpaceGallery3D.currentWeather;
@@ -59,7 +70,6 @@
       bgWeatherParticles.material.dispose();
       bgWeatherParticles = null;
     }
-    
     if (currentBgWeather === 'clear') return;
     
     const particleCount = currentBgWeather === 'cloudy' ? 300 : 600;
@@ -73,6 +83,8 @@
         (Math.random() - 0.5) * 500
       );
     }
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('velocity', new THREE.Float32BufferAttribute(vel, 3));
     
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
     
@@ -85,9 +97,8 @@
       size: currentBgWeather === 'rain' ? 0.5 : currentBgWeather === 'cloudy' ? 3 : 2,
       color: currentBgWeather === 'rain' ? 0x4A90E2 : currentBgWeather === 'cloudy' ? 0x666666 : 0xFFFFFF,
       transparent: true,
-      opacity: currentBgWeather === 'rain' ? 0.4 : currentBgWeather === 'cloudy' ? 0.2 : 0.6,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false
+      opacity: currentBgWeather === 'rain' ? 0.4 : 0.2,
+      blending: THREE.AdditiveBlending, depthWrite: false
     });
 
     // Optimization: Shader-based movement to offload CPU
@@ -135,498 +146,216 @@
     bgWeatherParticles = new THREE.Points(geometry, material);
     scene.add(bgWeatherParticles);
   }
-  
-  // Check for weather sync every 2 seconds
   setInterval(syncBackgroundWeather, 2000);
   
-  // Highly Detailed Starfield
-  const starGeometry = new THREE.BufferGeometry();
-  const starVertices = [];
-  const starColors = [];
-  const starSizes = [];
-  
-  for (let i = 0; i < 20000; i++) {
-    const x = (Math.random() - 0.5) * 3000;
-    const y = (Math.random() - 0.5) * 3000;
-    const z = (Math.random() - 0.5) * 3000;
-    starVertices.push(x, y, z);
-    
-    // Realistic star colors based on temperature
-    const temp = Math.random();
-    if (temp < 0.05) {
-      starColors.push(0.7, 0.85, 1.0); // Blue giants
-    } else if (temp < 0.3) {
-      starColors.push(1.0, 1.0, 1.0); // White
-    } else if (temp < 0.6) {
-      starColors.push(1.0, 0.98, 0.85); // Yellow
-    } else if (temp < 0.85) {
-      starColors.push(1.0, 0.85, 0.65); // Orange
-    } else {
-      starColors.push(1.0, 0.7, 0.6); // Red dwarfs
+  // Starfield Layers
+  function createStarLayer(count, size, range, colorFn) {
+    const geo = new THREE.BufferGeometry();
+    const pos = [];
+    const col = [];
+    for (let i = 0; i < count; i++) {
+      pos.push((Math.random() - 0.5) * range, (Math.random() - 0.5) * range, (Math.random() - 0.5) * range);
+      const c = colorFn();
+      col.push(c.r, c.g, c.b);
     }
-    
-    starSizes.push(Math.random() * 2.2 + 0.3);
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    const mat = new THREE.PointsMaterial({
+      size: size, vertexColors: true, transparent: true, opacity: 0.9, sizeAttenuation: true, blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    const mesh = new THREE.Points(geo, mat);
+    scene.add(mesh);
+    return mesh;
   }
   
-  starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
-  starGeometry.setAttribute('color', new THREE.Float32BufferAttribute(starColors, 3));
-  starGeometry.setAttribute('size', new THREE.Float32BufferAttribute(starSizes, 1));
+  const starLayers = [
+    createStarLayer(15000, 1.2, 3000, () => Math.random() < 0.1 ? new THREE.Color(0x88ccff) : new THREE.Color(0xffffff)),
+    createStarLayer(5000, 2.5, 3000, () => new THREE.Color(0xffffff)),
+    createStarLayer(20000, 0.8, 4000, () => new THREE.Color(0x445566))
+  ];
   
-  const starMaterial = new THREE.PointsMaterial({ 
-    size: 1.4,
-    vertexColors: true,
-    transparent: true,
-    opacity: 0.95,
-    sizeAttenuation: true,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false
-  });
-  
-  const stars = new THREE.Points(starGeometry, starMaterial);
-  scene.add(stars);
-  
-  // Enhanced Nebula with more particles
-  const nebulaGeometry = new THREE.BufferGeometry();
-  const nebulaVertices = [];
-  const nebulaColors = [];
-  
+  // Nebula
+  const nebulaGeo = new THREE.BufferGeometry();
+  const nebPos = [], nebCol = [];
   for (let i = 0; i < 4000; i++) {
-    const theta = Math.random() * Math.PI * 2;
-    const phi = Math.random() * Math.PI;
-    const r = 700 + Math.random() * 600;
-    
-    nebulaVertices.push(
-      r * Math.sin(phi) * Math.cos(theta),
-      r * Math.sin(phi) * Math.sin(theta),
-      r * Math.cos(phi)
-    );
-    
-    // Purple/cyan/pink nebula mix
-    const intensity = Math.random() * 0.5;
-    const colorType = Math.random();
-    if (colorType < 0.4) {
-      nebulaColors.push(0.2 + intensity * 0.8, 0.15 + intensity * 0.6, 0.7 + intensity); // Purple
-    } else if (colorType < 0.7) {
-      nebulaColors.push(0.1 + intensity * 0.5, 0.6 + intensity, 0.8 + intensity * 0.2); // Cyan
-    } else {
-      nebulaColors.push(0.8 + intensity * 0.2, 0.2 + intensity * 0.5, 0.6 + intensity); // Pink
-    }
+    const theta = Math.random() * Math.PI * 2, phi = Math.random() * Math.PI, r = 700 + Math.random() * 600;
+    nebPos.push(r * Math.sin(phi) * Math.cos(theta), r * Math.sin(phi) * Math.sin(theta), r * Math.cos(phi));
+    const c = new THREE.Color().setHSL(Math.random() < 0.5 ? 0.6 : 0.9, 0.8, 0.2 + Math.random()*0.3);
+    nebCol.push(c.r, c.g, c.b);
   }
-  
-  nebulaGeometry.setAttribute('position', new THREE.Float32BufferAttribute(nebulaVertices, 3));
-  nebulaGeometry.setAttribute('color', new THREE.Float32BufferAttribute(nebulaColors, 3));
-  
-  const nebulaMaterial = new THREE.PointsMaterial({
-    size: 12,
-    vertexColors: true,
-    transparent: true,
-    opacity: 0.2,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false
-  });
-  
-  const nebula = new THREE.Points(nebulaGeometry, nebulaMaterial);
+  nebulaGeo.setAttribute('position', new THREE.Float32BufferAttribute(nebPos, 3));
+  nebulaGeo.setAttribute('color', new THREE.Float32BufferAttribute(nebCol, 3));
+  const nebula = new THREE.Points(nebulaGeo, new THREE.PointsMaterial({ size: 15, vertexColors: true, transparent: true, opacity: 0.15, blending: THREE.AdditiveBlending, depthWrite: false }));
   scene.add(nebula);
   
-  // Distant Galaxies
-  const galaxyGeometry = new THREE.BufferGeometry();
-  const galaxyVertices = [];
-  const galaxyColors = [];
-  
-  for (let i = 0; i < 1500; i++) {
-    const angle = Math.random() * Math.PI * 2;
-    const radius = 1200 + Math.random() * 400;
-    const height = (Math.random() - 0.5) * 200;
-    
-    galaxyVertices.push(
-      Math.cos(angle) * radius,
-      height,
-      Math.sin(angle) * radius
-    );
-    
-    const brightness = Math.random() * 0.3 + 0.1;
-    galaxyColors.push(0.9 + brightness, 0.8 + brightness, 0.6 + brightness);
-  }
-  
-  galaxyGeometry.setAttribute('position', new THREE.Float32BufferAttribute(galaxyVertices, 3));
-  galaxyGeometry.setAttribute('color', new THREE.Float32BufferAttribute(galaxyColors, 3));
-  
-  const galaxyMaterial = new THREE.PointsMaterial({
-    size: 15,
-    vertexColors: true,
-    transparent: true,
-    opacity: 0.12,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false
-  });
-  
-  const galaxy = new THREE.Points(galaxyGeometry, galaxyMaterial);
-  scene.add(galaxy);
-  
-  // Realistic Planets with PBR materials
+  // Planets
   const planets = [];
-  
-  function createPlanet(radius, color, roughness, metalness, position, hasRings = false, hasAtmosphere = false, atmosphereColor = null) {
-    const geometry = new THREE.SphereGeometry(radius, 64, 64);
-    const material = new THREE.MeshStandardMaterial({ 
-      color: color,
-      roughness: roughness,
-      metalness: metalness,
-      emissive: color,
-      emissiveIntensity: 0.05
-    });
+  function createPlanet(radius, color, pos, hasRings = false, hasAtmos = false, atmosColor = null) {
+    const mesh = new THREE.Mesh(new THREE.SphereGeometry(radius, 64, 64), new THREE.MeshStandardMaterial({ color: color, roughness: 0.7, metalness: 0.2 }));
+    mesh.position.set(pos.x, pos.y, pos.z);
+    mesh.castShadow = true; mesh.receiveShadow = true;
+    scene.add(mesh);
     
-    const planet = new THREE.Mesh(geometry, material);
-    planet.position.set(position.x, position.y, position.z);
-    planet.castShadow = true;
-    planet.receiveShadow = true;
-    scene.add(planet);
-    
-    // Atmospheric glow
-    if (hasAtmosphere) {
-      const glowGeometry = new THREE.SphereGeometry(radius * 1.12, 32, 32);
-      const glowMaterial = new THREE.ShaderMaterial({
-        uniforms: {
-          c: { value: 0.4 },
-          p: { value: 3.5 },
-          glowColor: { value: new THREE.Color(atmosphereColor || color) }
-        },
-        vertexShader: `
-          varying vec3 vNormal;
-          void main() {
-            vNormal = normalize(normalMatrix * normal);
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-          }
-        `,
-        fragmentShader: `
-          uniform vec3 glowColor;
-          uniform float c;
-          uniform float p;
-          varying vec3 vNormal;
-          void main() {
-            float intensity = pow(c - dot(vNormal, vec3(0.0, 0.0, 1.0)), p);
-            gl_FragColor = vec4(glowColor, 1.0) * intensity;
-          }
-        `,
-        side: THREE.BackSide,
-        blending: THREE.AdditiveBlending,
-        transparent: true,
-        depthWrite: false
-      });
-      const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-      planet.add(glow);
+    if (hasAtmos) {
+      const glow = new THREE.Mesh(new THREE.SphereGeometry(radius * 1.15, 32, 32), new THREE.ShaderMaterial({
+        uniforms: { c: { value: 0.3 }, p: { value: 4.5 }, glowColor: { value: new THREE.Color(atmosColor || color) } },
+        vertexShader: `varying vec3 vNormal; void main() { vNormal = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+        fragmentShader: `uniform vec3 glowColor; uniform float c; uniform float p; varying vec3 vNormal; void main() { float intensity = pow(c - dot(vNormal, vec3(0.0, 0.0, 1.0)), p); gl_FragColor = vec4(glowColor, 1.0) * intensity; }`,
+        side: THREE.BackSide, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false
+      }));
+      mesh.add(glow);
     }
-    
-    // Rings with realistic shadows
     if (hasRings) {
-      const ringGeometry = new THREE.RingGeometry(radius * 1.4, radius * 2.3, 64);
-      const ringMaterial = new THREE.MeshStandardMaterial({
-        color: color,
-        transparent: true,
-        opacity: 0.7,
-        side: THREE.DoubleSide,
-        roughness: 0.8,
-        metalness: 0.1
-      });
-      const ring = new THREE.Mesh(ringGeometry, ringMaterial);
-      ring.rotation.x = Math.PI / 2.2;
-      ring.castShadow = true;
-      ring.receiveShadow = true;
-      planet.add(ring);
+      const ring = new THREE.Mesh(new THREE.RingGeometry(radius * 1.4, radius * 2.3, 64), new THREE.MeshStandardMaterial({ color: color, transparent: true, opacity: 0.7, side: THREE.DoubleSide }));
+      ring.rotation.x = Math.PI / 2.2; ring.castShadow = true; ring.receiveShadow = true;
+      mesh.add(ring);
     }
-    
-    return planet;
+    return mesh;
   }
   
-  // Sun with volumetric glow
-  const sunGeometry = new THREE.SphereGeometry(12, 48, 48);
-  const sunMaterial = new THREE.MeshBasicMaterial({ 
-    color: 0xFFD700,
-    emissive: 0xFFD700,
-    emissiveIntensity: 1.5
-  });
-  const sun = new THREE.Mesh(sunGeometry, sunMaterial);
+  const sun = new THREE.Mesh(new THREE.SphereGeometry(12, 48, 48), new THREE.MeshBasicMaterial({ color: 0xFFD700 }));
   sun.position.set(-100, 30, -150);
   scene.add(sun);
-  
-  // Volumetric sun glow layers
   const sunGlow = new THREE.Group();
-  for (let i = 0; i < 3; i++) {
-    const glowGeometry = new THREE.SphereGeometry(14 + i * 3, 32, 32);
-    const glowMaterial = new THREE.MeshBasicMaterial({
-      color: i === 0 ? 0xFFAA00 : 0xFF8800,
-      transparent: true,
-      opacity: 0.15 - i * 0.04,
-      side: THREE.BackSide,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false
-    });
-    const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-    sunGlow.add(glow);
-  }
+  for(let i=0; i<3; i++) sunGlow.add(new THREE.Mesh(new THREE.SphereGeometry(14+i*4, 32, 32), new THREE.MeshBasicMaterial({ color: i===0?0xFFAA00:0xFF8800, transparent: true, opacity: 0.12-i*0.03, side: THREE.BackSide, blending: THREE.AdditiveBlending, depthWrite: false })));
   sun.add(sunGlow);
   
-  // Complete Solar System with All Planets
-  // Mercury - closest to sun
-  const mercury = createPlanet(2.5, 0x8C7853, 0.95, 0.1, { x: -80, y: 5, z: -40 }, false, false);
+  const mercury = createPlanet(2.5, 0x8C7853, {x:-80, y:5, z:-40});
   planets.push({ mesh: mercury, speed: 0.0015, radius: 30, angle: 0, rotationSpeed: 0.004 });
-  
-  // Venus - bright morning star
-  const venus = createPlanet(3.8, 0xFFC649, 0.5, 0.1, { x: 25, y: 10, z: -50 }, false, true, 0xFFE4B5);
-  planets.push({ mesh: venus, speed: 0.001, radius: 40, angle: Math.PI / 4, rotationSpeed: 0.005 });
-  
-  // Earth - blue marble with atmosphere
-  const earth = createPlanet(4.5, 0x2E5F8C, 0.7, 0.1, { x: 40, y: -15, z: -60 }, false, true, 0x4A90E2);
+  const venus = createPlanet(3.8, 0xFFC649, {x:25, y:10, z:-50}, false, true, 0xFFE4B5);
+  planets.push({ mesh: venus, speed: 0.001, radius: 40, angle: Math.PI/4, rotationSpeed: 0.005 });
+  const earth = createPlanet(4.5, 0x2E5F8C, {x:40, y:-15, z:-60}, false, true, 0x4A90E2);
   planets.push({ mesh: earth, speed: 0.0008, radius: 50, angle: 0, rotationSpeed: 0.01 });
-  
-  // Moon - orbiting Earth
-  const moonGeometry = new THREE.SphereGeometry(1.2, 32, 32);
-  const moonMaterial = new THREE.MeshStandardMaterial({
-    color: 0xCCCCCC,
-    roughness: 0.9,
-    metalness: 0.05
-  });
-  const moon = new THREE.Mesh(moonGeometry, moonMaterial);
-  moon.castShadow = true;
-  moon.receiveShadow = true;
-  earth.add(moon);
-  moon.position.set(8, 0, 0);
-  
-  // Mars - red planet
-  const mars = createPlanet(3.2, 0xCD5C5C, 0.9, 0.05, { x: -50, y: 20, z: -70 }, false, false);
+  const moon = new THREE.Mesh(new THREE.SphereGeometry(1.2, 32, 32), new THREE.MeshStandardMaterial({ color: 0xCCCCCC }));
+  moon.castShadow = true; earth.add(moon); moon.position.set(8,0,0);
+  const mars = createPlanet(3.2, 0xCD5C5C, {x:-50, y:20, z:-70});
   planets.push({ mesh: mars, speed: 0.0005, radius: 65, angle: Math.PI, rotationSpeed: 0.008 });
+  const jupiter = createPlanet(8.5, 0xC88B3A, {x:80, y:35, z:-100});
+  planets.push({ mesh: jupiter, speed: 0.0002, radius: 90, angle: Math.PI/2, rotationSpeed: 0.015 });
+  const saturn = createPlanet(7.5, 0xE8D4A0, {x:-70, y:-25, z:-90}, true);
+  planets.push({ mesh: saturn, speed: 0.00015, radius: 80, angle: Math.PI*1.5, rotationSpeed: 0.012 });
+  const uranus = createPlanet(5.5, 0x4FD0E7, {x:95, y:-30, z:-120}, true);
+  planets.push({ mesh: uranus, speed: 0.0001, radius: 110, angle: Math.PI/3, rotationSpeed: 0.009 });
+  const neptune = createPlanet(5.2, 0x4169E1, {x:-85, y:15, z:-130});
+  planets.push({ mesh: neptune, speed: 0.00008, radius: 125, angle: Math.PI*1.7, rotationSpeed: 0.01 });
   
-  // Jupiter - gas giant with bands
-  const jupiter = createPlanet(8.5, 0xC88B3A, 0.6, 0.2, { x: 80, y: 35, z: -100 }, false, false);
-  planets.push({ mesh: jupiter, speed: 0.0002, radius: 90, angle: Math.PI / 2, rotationSpeed: 0.015 });
+  // Lighting
+  scene.add(new THREE.AmbientLight(0x1a1a3a, 0.6));
+  const sunL = new THREE.PointLight(0xFFD700, 4.0, 500); sunL.position.copy(sun.position); sunL.castShadow = true; scene.add(sunL);
+  const fillL = new THREE.DirectionalLight(0x4A90E2, 0.6); fillL.position.set(-80, 40, 60); scene.add(fillL);
+  const rimL = new THREE.DirectionalLight(0x8A2BE2, 0.8); rimL.position.set(60, -30, -80); scene.add(rimL);
   
-  // Saturn - with majestic rings
-  const saturn = createPlanet(7.5, 0xE8D4A0, 0.7, 0.15, { x: -70, y: -25, z: -90 }, true, false);
-  planets.push({ mesh: saturn, speed: 0.00015, radius: 80, angle: Math.PI * 1.5, rotationSpeed: 0.012 });
-  
-  // Uranus - ice giant with tilt
-  const uranus = createPlanet(5.5, 0x4FD0E7, 0.6, 0.3, { x: 95, y: -30, z: -120 }, true, false);
-  uranus.rotation.z = Math.PI / 4; // Tilted rotation
-  planets.push({ mesh: uranus, speed: 0.0001, radius: 110, angle: Math.PI / 3, rotationSpeed: 0.009 });
-  
-  // Neptune - deep blue ice giant
-  const neptune = createPlanet(5.2, 0x4169E1, 0.65, 0.25, { x: -85, y: 15, z: -130 }, false, false);
-  planets.push({ mesh: neptune, speed: 0.00008, radius: 125, angle: Math.PI * 1.7, rotationSpeed: 0.01 });
-  
-  // Cinematic Three-Point Lighting System
-  const ambientLight = new THREE.AmbientLight(0x1a1a2e, 0.4);
-  scene.add(ambientLight);
-  
-  // Key Light - Sun (warm, bright)
-  const sunLight = new THREE.PointLight(0xFFD700, 3.5, 400);
-  sunLight.position.copy(sun.position);
-  sunLight.castShadow = true;
-  sunLight.shadow.mapSize.width = 2048;
-  sunLight.shadow.mapSize.height = 2048;
-  sunLight.shadow.camera.near = 10;
-  sunLight.shadow.camera.far = 400;
-  sunLight.shadow.bias = -0.0001;
-  scene.add(sunLight);
-  
-  // Fill Light - soft blue (simulates scattered light)
-  const fillLight = new THREE.DirectionalLight(0x4A90E2, 0.4);
-  fillLight.position.set(-80, 40, 60);
-  scene.add(fillLight);
-  
-  // Rim/Back Light - purple/cyan (edge definition)
-  const rimLight = new THREE.DirectionalLight(0x8A2BE2, 0.6);
-  rimLight.position.set(60, -30, -80);
-  scene.add(rimLight);
-  
-  // Accent Light - cyan (depth and atmosphere)
-  const accentLight = new THREE.PointLight(0x00CED1, 0.8, 200);
-  accentLight.position.set(0, 80, 50);
-  scene.add(accentLight);
-  
-  // Improved Shooting Stars
-  const shootingStars = [];
-  
-  function createShootingStar() {
-    const geometry = new THREE.BufferGeometry();
-    const positions = [];
-    const colors = [];
-    
-    // Shorter, cleaner trail
-    for (let i = 0; i < 12; i++) {
-      positions.push(0, 0, 0);
-      const intensity = 1 - (i / 12);
-      // Simple white to fade
-      colors.push(1, 1, 1 - (i * 0.05));
-    }
-    
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-    
-    const material = new THREE.LineBasicMaterial({
-      vertexColors: true,
-      transparent: true,
-      opacity: 0.8,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-      linewidth: 1
-    });
-    
-    const line = new THREE.Line(geometry, material);
-    
-    // Start from far edges
-    const angle = Math.random() * Math.PI * 2;
-    const distance = 300 + Math.random() * 200;
-    line.position.set(
-      Math.cos(angle) * distance,
-      100 + Math.random() * 50,
-      Math.sin(angle) * distance
-    );
-    
-    // Faster, more diagonal movement
-    const speed = 4 + Math.random() * 2;
-    const direction = new THREE.Vector3(
-      (Math.random() - 0.5) * 1.5,
-      -2 - Math.random(),
-      (Math.random() - 0.5) * 1.5
-    ).normalize();
-    
-    scene.add(line);
-    
-    return {
-      line: line,
-      velocity: direction.multiplyScalar(speed),
-      life: 1,
-      positions: positions
-    };
-  }
-  
-  // Less frequent, more special
-  setInterval(() => {
-    if (Math.random() < 0.15 && shootingStars.length < 2) {
-      shootingStars.push(createShootingStar());
-    }
-  }, 4000);
-  
-  // Detailed Asteroid Belt
-  const asteroidGeometry = new THREE.DodecahedronGeometry(0.5, 0);
+  // Asteroids
   const asteroids = [];
+  const astGeo = new THREE.DodecahedronGeometry(0.5, 0);
+  const astMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.9, flatShading: true });
+  for (let i = 0; i < 150; i++) {
+    const ast = new THREE.Mesh(astGeo, astMat);
+    const angle = Math.random() * Math.PI * 2, dist = 105 + Math.random() * 30;
+    ast.position.set(Math.cos(angle)*dist, (Math.random()-0.5)*15, Math.sin(angle)*dist);
+    ast.scale.setScalar(0.3 + Math.random()*0.8);
+    ast.castShadow = true; scene.add(ast);
+    asteroids.push({ mesh: ast, rot: (Math.random()-0.5)*0.02, orb: 0.0001+Math.random()*0.0002, angle: angle, dist: dist });
+  }
+
+  // Shooting Stars (Optimized Pool)
+  const shootingStars = [];
+  const ssGeo = new THREE.BufferGeometry();
+  ssGeo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(6), 3)); // 2 points
+  const ssMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0 });
   
-  for (let i = 0; i < 120; i++) {
-    const material = new THREE.MeshStandardMaterial({
-      color: 0x555555,
-      roughness: 0.95,
-      metalness: 0.2,
-      flatShading: true
-    });
-    const asteroid = new THREE.Mesh(asteroidGeometry, material);
-    
-    const angle = Math.random() * Math.PI * 2;
-    const distance = 105 + Math.random() * 30;
-    asteroid.position.set(
-      Math.cos(angle) * distance,
-      (Math.random() - 0.5) * 12,
-      Math.sin(angle) * distance
-    );
-    
-    asteroid.rotation.set(
-      Math.random() * Math.PI,
-      Math.random() * Math.PI,
-      Math.random() * Math.PI
-    );
-    
-    const scale = 0.3 + Math.random() * 0.8;
-    asteroid.scale.set(scale, scale, scale);
-    asteroid.castShadow = true;
-    
-    scene.add(asteroid);
-    asteroids.push({
-      mesh: asteroid,
-      rotationSpeed: (Math.random() - 0.5) * 0.015,
-      orbitSpeed: 0.00012 + Math.random() * 0.00015,
-      angle: angle,
-      distance: distance
-    });
+  // Create pool of 5 reuseable lines
+  for(let i=0; i<5; i++) {
+    const line = new THREE.Line(ssGeo.clone(), ssMat.clone());
+    scene.add(line);
+    shootingStars.push({ mesh: line, active: false, t: 0, start: new THREE.Vector3(), end: new THREE.Vector3() });
   }
   
-  // Performance-optimized Animation Loop
+  function spawnShootingStar() {
+    const star = shootingStars.find(s => !s.active);
+    if(!star) return;
+    
+    star.active = true;
+    star.t = 0;
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 300 + Math.random() * 200;
+    star.start.set(Math.cos(angle)*dist, 100+Math.random()*50, Math.sin(angle)*dist);
+    const dir = new THREE.Vector3((Math.random()-0.5)*2, -1-Math.random(), (Math.random()-0.5)*2).normalize();
+    star.end.copy(star.start).add(dir.multiplyScalar(200)); // Length of travel
+    
+    star.mesh.material.opacity = 1;
+    star.mesh.geometry.attributes.position.setXYZ(0, star.start.x, star.start.y, star.start.z);
+    star.mesh.geometry.attributes.position.setXYZ(1, star.start.x, star.start.y, star.start.z);
+    star.mesh.geometry.attributes.position.needsUpdate = true;
+  }
+  setInterval(() => { if(Math.random()<0.3) spawnShootingStar(); }, 2000);
+
+  // Animation Loop
   let lastTime = 0;
-  const targetFPS = 60;
-  const frameTime = 1000 / targetFPS;
-  
   function animate(currentTime) {
     requestAnimationFrame(animate);
+    const dt = Math.min((currentTime - lastTime) / 1000, 0.1);
+    lastTime = currentTime;
+    const scale = dt * 60;
     
-    const deltaTime = currentTime - lastTime;
-    if (deltaTime < frameTime) return;
-    lastTime = currentTime - (deltaTime % frameTime);
+    // Warp
+    cinematic.warpFactor += (cinematic.targetWarp - cinematic.warpFactor) * dt * 2;
+    const warpSpeed = 1 + cinematic.warpFactor * 50;
     
-    // Subtle star rotation
-    stars.rotation.y += 0.00008;
-    nebula.rotation.y -= 0.00005;
-    galaxy.rotation.y += 0.00003;
-    
-    // Sun rotation with glow
-    sun.rotation.y += 0.001;
-    sunGlow.rotation.y -= 0.0015;
-    sunGlow.rotation.z += 0.0008;
-    
-    // Planet orbits and rotation
-    const centerX = sun.position.x;
-    const centerZ = sun.position.z;
-    
-    planets.forEach(planet => {
-      planet.angle += planet.speed;
-      planet.mesh.position.x = centerX + Math.cos(planet.angle) * planet.radius;
-      planet.mesh.position.z = centerZ + Math.sin(planet.angle) * planet.radius;
-      planet.mesh.rotation.y += planet.rotationSpeed;
+    // Stars
+    starLayers.forEach((stars, i) => {
+      stars.rotation.y += 0.00005 * (i + 1) * scale * warpSpeed;
+      if (cinematic.warpFactor > 0.01) {
+         stars.scale.z = 1 + cinematic.warpFactor * 20;
+         stars.rotation.z += 0.001 * scale;
+      } else {
+         stars.scale.z += (1 - stars.scale.z) * dt * 2;
+      }
     });
     
-    // Moon orbits Earth
+    nebula.rotation.y -= 0.00005 * scale;
+    sun.rotation.y += 0.001 * scale;
+    sunGlow.rotation.y -= 0.0015 * scale;
+    sunGlow.rotation.z += 0.0008 * scale;
+    
+    // Planets
+    const cx = sun.position.x, cz = sun.position.z;
+    planets.forEach(p => {
+      p.angle += p.speed * scale;
+      p.mesh.position.set(cx + Math.cos(p.angle)*p.radius, p.mesh.position.y, cz + Math.sin(p.angle)*p.radius);
+      p.mesh.rotation.y += p.rotationSpeed * scale;
+    });
+    
     if (moon) {
-      moon.rotation.y += 0.02;
-      const moonOrbitAngle = currentTime * 0.0005;
-      moon.position.x = Math.cos(moonOrbitAngle) * 8;
-      moon.position.z = Math.sin(moonOrbitAngle) * 8;
+      moon.rotation.y += 0.02 * scale;
+      if (!moon.orbAng) moon.orbAng = 0;
+      moon.orbAng += 0.03 * scale;
+      moon.position.set(Math.cos(moon.orbAng)*8, 0, Math.sin(moon.orbAng)*8);
     }
     
-    // Asteroid belt animation
-    asteroids.forEach(asteroid => {
-      asteroid.angle += asteroid.orbitSpeed;
-      asteroid.mesh.position.x = centerX + Math.cos(asteroid.angle) * asteroid.distance;
-      asteroid.mesh.position.z = centerZ + Math.sin(asteroid.angle) * asteroid.distance;
-      asteroid.mesh.rotation.x += asteroid.rotationSpeed;
-      asteroid.mesh.rotation.y += asteroid.rotationSpeed * 0.7;
+    asteroids.forEach(a => {
+      a.angle += a.orb * scale;
+      a.mesh.position.set(cx + Math.cos(a.angle)*a.dist, a.mesh.position.y, cz + Math.sin(a.angle)*a.dist);
+      a.mesh.rotation.x += a.rot * scale;
+      a.mesh.rotation.y += a.rot * scale;
     });
     
-    // Shooting stars with simpler animation
-    for (let i = shootingStars.length - 1; i >= 0; i--) {
-      const star = shootingStars[i];
+    // Shooting Stars Update
+    shootingStars.forEach(s => {
+      if(!s.active) return;
+      s.t += dt * 1.5; // Speed
+      if(s.t > 1) { s.active = false; s.mesh.material.opacity = 0; return; }
       
-      // Simple trail update
-      const positions = star.line.geometry.attributes.position.array;
-      for (let j = positions.length - 3; j >= 3; j -= 3) {
-        positions[j] = positions[j - 3];
-        positions[j + 1] = positions[j - 2];
-        positions[j + 2] = positions[j - 1];
-      }
+      const p1 = new THREE.Vector3().lerpVectors(s.start, s.end, s.t);
+      // Trail length 0.2
+      const p2 = new THREE.Vector3().lerpVectors(s.start, s.end, Math.max(0, s.t - 0.1));
       
-      positions[0] = star.line.position.x;
-      positions[1] = star.line.position.y;
-      positions[2] = star.line.position.z;
-      star.line.geometry.attributes.position.needsUpdate = true;
-      
-      // Move shooting star
-      star.line.position.add(star.velocity);
-      star.life -= 0.02;
-      star.line.material.opacity = star.life * 0.8;
-      
-      if (star.life <= 0 || star.line.position.y < -50) {
-        scene.remove(star.line);
-        star.line.geometry.dispose();
-        star.line.material.dispose();
-        shootingStars.splice(i, 1);
-      }
-    }
+      s.mesh.geometry.attributes.position.setXYZ(0, p1.x, p1.y, p1.z);
+      s.mesh.geometry.attributes.position.setXYZ(1, p2.x, p2.y, p2.z);
+      s.mesh.geometry.attributes.position.needsUpdate = true;
+      // Fade out
+      s.mesh.material.opacity = Math.sin(s.t * Math.PI) * 0.8;
+    });
     
     // Background weather particles
     if (bgWeatherParticles && bgWeatherParticles.material.userData.shader) {
@@ -634,46 +363,21 @@
       bgWeatherParticles.material.userData.shader.uniforms.uTime.value = currentTime * 0.001;
     }
     
-    // Cinematic camera movement with mouse influence
-    const time = currentTime * 0.0001;
-    updateMouseInfluence();
+    // Cinematic Camera Drift
+    updateMouseInfluence(dt);
+    const time = currentTime * 0.00005;
+    const driftX = Math.sin(time) * 10 + Math.cos(time * 0.3) * 5;
+    const driftY = Math.cos(time * 0.7) * 5 + Math.sin(time * 0.2) * 3;
+    const shake = cinematic.warpFactor * (Math.random() - 0.5) * 0.5;
     
-    camera.position.x = Math.sin(time) * 4 + mouseInfluence.x * 10;
-    camera.position.y = 25 + Math.cos(time * 0.7) * 2 + mouseInfluence.y * 10;
+    camera.position.x = driftX + mouseInfluence.x * 10 + shake;
+    camera.position.y = 25 + driftY + mouseInfluence.y * 10 + shake;
     camera.lookAt(0, 0, -50);
-    
-    // Make planets react to mouse
-    planets.forEach(planet => {
-      const dx = planet.mesh.position.x - (mouseInfluence.x * 50);
-      const dy = planet.mesh.position.y - (mouseInfluence.y * 50);
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      
-      if (distance < 100) {
-        const force = (100 - distance) / 100;
-        planet.mesh.position.x += dx * force * 0.02;
-        planet.mesh.position.y += dy * force * 0.02;
-      }
-    });
-    
-    // Make asteroids react to mouse
-    asteroids.forEach(asteroid => {
-      const dx = asteroid.mesh.position.x - (mouseInfluence.x * 50);
-      const dy = asteroid.mesh.position.y - (mouseInfluence.y * 50);
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      
-      if (distance < 80) {
-        const force = (80 - distance) / 80;
-        asteroid.mesh.position.x += dx * force * 0.03;
-        asteroid.mesh.position.y += dy * force * 0.03;
-      }
-    });
     
     renderer.render(scene, camera);
   }
-  
   animate(0);
   
-  // Responsive resize with debouncing
   let resizeTimeout;
   window.addEventListener('resize', () => {
     clearTimeout(resizeTimeout);
@@ -682,20 +386,5 @@
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     }, 100);
-  });
-  
-  // Cleanup on page unload
-  window.addEventListener('beforeunload', () => {
-    scene.traverse(obj => {
-      if (obj.geometry) obj.geometry.dispose();
-      if (obj.material) {
-        if (Array.isArray(obj.material)) {
-          obj.material.forEach(mat => mat.dispose());
-        } else {
-          obj.material.dispose();
-        }
-      }
-    });
-    renderer.dispose();
   });
 })();

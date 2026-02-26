@@ -7,8 +7,9 @@ const fs = require('fs');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
+const rateLimiter = require('./rateLimiter');
 const mongoose = require('mongoose');
-const { checkWinner, generateRoomCode } = require('./utils');
+const { checkWinner, generateRoomCode, validateRegistration, validateRoomJoin } = require('./utils');
 
 // Load environment variables
 require('dotenv').config();
@@ -27,15 +28,17 @@ const io = new Server(server, {
 
 // MongoDB Connection
 const MONGODB_URI = process.env.MONGODB_URI;
-if (MONGODB_URI) {
-  mongoose.connect(MONGODB_URI)
-    .then(() => console.log('✅ Connected to MongoDB'))
-    .catch(err => {
-      console.error('❌ MongoDB connection error:', err.message);
-      console.log('⚠️  Falling back to file-based storage');
-    });
-} else {
-  console.log('⚠️  No MONGODB_URI found, using file-based storage');
+if (require.main === module) {
+  if (MONGODB_URI) {
+    mongoose.connect(MONGODB_URI)
+      .then(() => console.log('✅ Connected to MongoDB'))
+      .catch(err => {
+        console.error('❌ MongoDB connection error:', err.message);
+        console.log('⚠️  Falling back to file-based storage');
+      });
+  } else {
+    console.log('⚠️  No MONGODB_URI found, using file-based storage');
+  }
 }
 
 // User Schema for MongoDB
@@ -62,6 +65,15 @@ const useDB = () => mongoose.connection.readyState === 1;
 
 app.use(express.json());
 app.use(cookieParser());
+// Config endpoint for env vars
+app.get('/config.js', (req, res) => {
+  res.type('application/javascript');
+  res.send(`
+    window.FACEBOOK_APP_ID = '${process.env.FACEBOOK_APP_ID || ''}';
+    window.GOOGLE_CLIENT_ID = '${process.env.GOOGLE_CLIENT_ID || ''}';
+  `);
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Rate limiting
@@ -77,12 +89,16 @@ const apiLimiter = rateLimit({
 });
 
 // ── DATA PERSISTENCE ──────────────────────────────────────────────────
-const DATA_DIR = path.join(__dirname, 'data');
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
 let users = {};
+let cachedLeaderboard = null;
+let lastLeaderboardUpdate = 0;
+const LEADERBOARD_CACHE_TTL = 60 * 1000; // 60 seconds
+
 try {
   if (fs.existsSync(USERS_FILE)) {
     users = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
@@ -93,7 +109,7 @@ let saveTimer;
 function saveUsers() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    try { fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2)); } catch (e) { }
+    fs.writeFile(USERS_FILE, JSON.stringify(users, null, 2), (err) => { if (err) console.error("Error saving users:", err); });
   }, 1000);
 }
 
@@ -101,42 +117,45 @@ function saveUsers() {
 const sessions = new Map(); // token -> userKey
 const socketUser = new Map(); // socketId -> userKey
 const userSocket = new Map(); // userKey -> socketId
-const rooms = new Map(); // roomCode -> roomObj
+const rooms = new Map();
+const socketRoom = new Map(); // roomCode -> roomObj
 
 function leaveCurrentRoom(socket) {
-  for (const [code, room] of rooms.entries()) {
+  const code = socketRoom.get(socket.id);
+  if (!code) return;
+
+  const room = rooms.get(code);
+  if (room) {
     const idx = room.players.findIndex(p => p.socketId === socket.id);
-    if (idx === -1) continue;
-    socket.leave(code);
-    room.players.splice(idx, 1);
-    if (room.players.length === 0) {
-      rooms.delete(code);
-    } else {
-      room.status = 'waiting';
-      delete room.rematchVotes;
-      socket.to(code).emit('game:opponent-left');
+    if (idx !== -1) {
+      socket.leave(code);
+      room.players.splice(idx, 1);
+      if (room.players.length === 0) {
+        rooms.delete(code);
+      } else {
+        room.status = 'waiting';
+        delete room.rematchVotes;
+        socket.to(code).emit('game:opponent-left');
+      }
     }
-    break;
   }
+  socketRoom.delete(socket.id);
 }
 
 function getRoomForSocket(socketId) {
-  for (const [code, room] of rooms.entries()) {
-    if (room.players.some(p => p.socketId === socketId)) return { code, room };
-  }
-  return null;
+  const code = socketRoom.get(socketId);
+  if (!code) return null;
+  const room = rooms.get(code);
+  if (!room) return null;
+  return { code, room };
 }
 
 // ── REST ENDPOINTS ────────────────────────────────────────────────────
 app.post('/api/register', authLimiter, async (req, res) => {
   const { username, password } = req.body || {};
-  if (!username?.trim() || !password) return res.json({ ok: false, error: 'Missing fields' });
-
-  const key = username.trim().toLowerCase();
-  if (key.length < 3) return res.json({ ok: false, error: 'Username too short (min 3 chars)' });
-  if (key.length > 16) return res.json({ ok: false, error: 'Username too long (max 16 chars)' });
-  if (!/^[a-z0-9_]+$/.test(key)) return res.json({ ok: false, error: 'Letters, numbers, underscores only' });
-  if (password.length < 8) return res.json({ ok: false, error: 'Password min 8 characters' });
+  const validation = validateRegistration(username, password);
+  if (!validation.ok) return res.json({ ok: false, error: validation.error });
+  const key = validation.key;
 
   const hash = await bcrypt.hash(password, 10);
 
@@ -173,6 +192,7 @@ app.post('/api/register', authLimiter, async (req, res) => {
 
 app.post('/api/login', authLimiter, async (req, res) => {
   const { username, password } = req.body || {};
+  if (typeof username !== 'string' || typeof password !== 'string') return res.json({ ok: false, error: 'Invalid input' });
   if (!username || !password) return res.json({ ok: false, error: 'Missing fields' });
 
   const key = username.trim().toLowerCase();
@@ -431,15 +451,35 @@ app.post('/api/auth/facebook', async (req, res) => {
 
 // Leaderboard endpoint
 app.get('/api/leaderboard', apiLimiter, (req, res) => {
+  const now = Date.now();
+  if (cachedLeaderboard && (now - lastLeaderboardUpdate < LEADERBOARD_CACHE_TTL)) {
+    return res.json(cachedLeaderboard);
+  }
+
   const board = Object.values(users)
     .map(u => ({ name: u.displayName, wins: u.wins, losses: u.losses, draws: u.draws }))
     .sort((a, b) => b.wins - a.wins)
     .slice(0, 10);
+
+  cachedLeaderboard = board;
+  lastLeaderboardUpdate = now;
   res.json(board);
 });
 
 // ── SOCKET.IO ─────────────────────────────────────────────────────────
 io.on('connection', (socket) => {
+
+  // ── RATE LIMITER ──
+  socket.use((packet, next) => {
+    const eventName = packet[0];
+    // Check if rateLimiter allows the event
+    if (!rateLimiter.check(socket.id, eventName)) {
+      if (eventName === 'disconnect') return next();
+      socket.emit('error', 'Rate limit exceeded. Please slow down.');
+      return;
+    }
+    next();
+  });
 
   // ── AUTH ──
   socket.on('auth', ({ token }) => {
@@ -478,6 +518,7 @@ io.on('connection', (socket) => {
       scores: { X: 0, O: 0, D: 0 }
     };
     rooms.set(code, room);
+    socketRoom.set(socket.id, code);
     socket.join(code);
     socket.emit('room:created', { code, symbol: 'X' });
   });
@@ -487,17 +528,18 @@ io.on('connection', (socket) => {
     const key = socketUser.get(socket.id);
     if (!key) return socket.emit('error', 'Not authenticated');
 
-    const upperCode = code?.toUpperCase().trim();
+    if (typeof code !== 'string') return socket.emit('room:error', 'Invalid room code');
+    const upperCode = code.toUpperCase().trim();
     const room = rooms.get(upperCode);
-    if (!room) return socket.emit('room:error', 'Room not found');
-    if (room.status === 'playing') return socket.emit('room:error', 'Game in progress');
-    if (room.players.length >= 2) return socket.emit('room:error', 'Room is full');
-    if (room.players[0].socketId === socket.id) return socket.emit('room:error', 'You created this room');
+
+    const validation = validateRoomJoin(room, socket.id);
+    if (!validation.ok) return socket.emit('room:error', validation.error);
 
     leaveCurrentRoom(socket);
 
     room.players.push({ socketId: socket.id, key, name: users[key].displayName, symbol: 'O' });
     room.status = 'playing';
+    socketRoom.set(socket.id, upperCode);
     socket.join(upperCode);
     socket.emit('room:joined', { code: upperCode, symbol: 'O' });
 
@@ -577,7 +619,8 @@ io.on('connection', (socket) => {
   // ── CHAT ──
   socket.on('chat:msg', ({ code, text }) => {
     const key = socketUser.get(socket.id);
-    if (!key || !text?.trim()) return;
+    if (typeof text !== 'string') return;
+    if (!key || !text.trim()) return;
     const clean = sanitize(text);
     if (!clean) return;
     io.to(code).emit('chat:msg', {
@@ -589,17 +632,24 @@ io.on('connection', (socket) => {
 
   // ── DISCONNECT ──
   socket.on('disconnect', () => {
+    rateLimiter.cleanup(socket.id);
     const key = socketUser.get(socket.id);
     if (key) {
       userSocket.delete(key);
       socketUser.delete(socket.id);
 
-      for (const [code, room] of rooms.entries()) {
-        const idx = room.players.findIndex(p => p.socketId === socket.id);
-        if (idx !== -1) {
+      const code = socketRoom.get(socket.id);
+      if (code) {
+        const room = rooms.get(code);
+        if (room) {
           socket.to(code).emit('game:opponent-left');
+          // Remove all players from socketRoom since room is deleted
+          for (const p of room.players) {
+            socketRoom.delete(p.socketId);
+          }
           rooms.delete(code);
-          break;
+        } else {
+          socketRoom.delete(socket.id);
         }
       }
     }
@@ -609,7 +659,11 @@ io.on('connection', (socket) => {
 // ── HEALTH CHECK ──────────────────────────────────────────────────────
 app.get('/health', (_, res) => res.json({ status: 'ok', uptime: process.uptime() }));
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 TicTacToe server running on port ${PORT}`);
-});
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 TicTacToe server running on port ${PORT}`);
+  });
+}
+
+module.exports = { app, server };
