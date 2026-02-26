@@ -1189,13 +1189,21 @@
       <div class="space-y-6">
         <div>
           <h3 class="text-nasa text-sm tracking-widest mb-3">🔊 SOUND PACK</h3>
-          <div class="grid grid-cols-2 gap-3">
+          <div class="grid grid-cols-1 gap-3">
             <template x-for="pack in soundPacks">
-              <button @click="changeSoundPack(pack)" 
-                      :class="user.profile.soundPack === pack ? 'border-nasa bg-nasa/20' : 'border-gray-700'"
-                      class="glass rounded-lg border-2 p-3 hover:border-nasa/50 transition">
-                <div class="text-sm font-bold uppercase" x-text="pack"></div>
-              </button>
+              <div :class="user.profile.soundPack === pack ? 'border-nasa bg-nasa/20' : 'border-gray-700'"
+                   class="glass rounded-lg border-2 p-3 hover:border-nasa/50 transition">
+                <div class="flex items-center justify-between">
+                  <button @click="changeSoundPack(pack)" class="flex-1 text-left">
+                    <div class="text-sm font-bold uppercase" x-text="pack"></div>
+                    <div class="text-xs text-gray-400" x-text="getSoundPackDescription(pack)"></div>
+                  </button>
+                  <button @click="previewSound(pack)" 
+                          class="ml-3 bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded text-xs transition">
+                    ▶ Preview
+                  </button>
+                </div>
+              </div>
             </template>
           </div>
         </div>
@@ -1205,15 +1213,15 @@
           <div class="space-y-3">
             <label class="flex items-center justify-between glass rounded-lg p-3 cursor-pointer hover:bg-gray-800/50">
               <span>High Contrast Mode</span>
-              <input type="checkbox" x-model="highContrast" @change="toggleHighContrast()" class="w-5 h-5">
+              <input type="checkbox" x-model="highContrast" class="w-5 h-5">
             </label>
             <label class="flex items-center justify-between glass rounded-lg p-3 cursor-pointer hover:bg-gray-800/50">
               <span>Colorblind Friendly</span>
-              <input type="checkbox" x-model="colorblindMode" @change="toggleColorblindMode()" class="w-5 h-5">
+              <input type="checkbox" x-model="colorblindMode" class="w-5 h-5">
             </label>
             <label class="flex items-center justify-between glass rounded-lg p-3 cursor-pointer hover:bg-gray-800/50">
               <span>Keyboard Navigation (1-9 keys)</span>
-              <input type="checkbox" x-model="keyboardNav" @change="enableKeyboardNav()" class="w-5 h-5">
+              <input type="checkbox" x-model="keyboardNav" class="w-5 h-5">
             </label>
           </div>
         </div>

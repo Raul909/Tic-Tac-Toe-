@@ -192,6 +192,19 @@ function app() {
       this.$watch('spaceSpeed', value => {
         if (window.SpaceGallery) window.SpaceGallery.speed = parseFloat(value);
       });
+      
+      // Watch for accessibility changes
+      this.$watch('highContrast', value => {
+        document.body.classList.toggle('high-contrast', value);
+        localStorage.setItem('highContrast', value);
+      });
+      this.$watch('colorblindMode', value => {
+        document.body.classList.toggle('colorblind', value);
+        localStorage.setItem('colorblindMode', value);
+      });
+      this.$watch('keyboardNav', value => {
+        if (value) this.enableKeyboardNav();
+      });
     },
 
     initWeatherSync() {
@@ -1065,19 +1078,17 @@ function app() {
     },
     
     toggleHighContrast() {
-      this.highContrast = !this.highContrast;
       document.body.classList.toggle('high-contrast', this.highContrast);
       localStorage.setItem('highContrast', this.highContrast);
     },
 
     toggleColorblindMode() {
-      this.colorblindMode = !this.colorblindMode;
       document.body.classList.toggle('colorblind', this.colorblindMode);
       localStorage.setItem('colorblindMode', this.colorblindMode);
     },
 
     enableKeyboardNav() {
-      this.keyboardNav = true;
+      if (!this.keyboardNav) return;
       localStorage.setItem('keyboardNav', 'true');
       document.addEventListener('keydown', (e) => {
         if (!this.gameActive) return;
@@ -1094,6 +1105,27 @@ function app() {
         window.SoundManager.changePack(pack);
       }
       this.saveStats();
+    },
+    
+    previewSound(pack) {
+      if (window.SoundManager) {
+        const currentPack = window.SoundManager.currentPack;
+        window.SoundManager.changePack(pack);
+        window.SoundManager.play('move');
+        setTimeout(() => window.SoundManager.play('win'), 300);
+        // Restore current pack after preview
+        setTimeout(() => window.SoundManager.changePack(currentPack), 2000);
+      }
+    },
+    
+    getSoundPackDescription(pack) {
+      const descriptions = {
+        scifi: 'Futuristic electronic sounds',
+        retro: 'Classic 8-bit chiptune',
+        realistic: 'Natural subtle tones',
+        minimal: 'Ultra-quiet sounds'
+      };
+      return descriptions[pack] || '';
     },
     
     rematch() {
