@@ -7,7 +7,7 @@
   const renderer = new THREE.WebGLRenderer({ 
     canvas: document.getElementById('three-canvas'),
     alpha: true,
-    antialias: window.devicePixelRatio < 2,
+    antialias: true,
     powerPreference: 'high-performance',
     stencil: false,
     depth: true
@@ -15,7 +15,7 @@
   
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.enabled = false; // Disable shadows for performance
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.3;
@@ -209,11 +209,37 @@
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
     geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
     const mat = new THREE.PointsMaterial({
-      size: isMobile ? size * 1.5 : size, vertexColors: true, transparent: true, opacity: 0.6, sizeAttenuation: true, blending: THREE.AdditiveBlending, depthWrite: false
+      size: isMobile ? size * 1.5 : size, 
+      vertexColors: true, 
+      transparent: true, 
+      opacity: 0.6, 
+      sizeAttenuation: true, 
+      blending: THREE.AdditiveBlending, 
+      depthWrite: false,
+      map: createCircleTexture(), // Add circular texture for round stars
+      alphaTest: 0.01
     });
     const mesh = new THREE.Points(geo, mat);
     scene.add(mesh);
     return mesh;
+  }
+  
+  // Create circular texture for round stars
+  function createCircleTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 32;
+    canvas.height = 32;
+    const ctx = canvas.getContext('2d');
+    const gradient = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+    gradient.addColorStop(0, 'rgba(255,255,255,1)');
+    gradient.addColorStop(0.2, 'rgba(255,255,255,0.8)');
+    gradient.addColorStop(0.5, 'rgba(255,255,255,0.3)');
+    gradient.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 32, 32);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+    return texture;
   }
   
   const starLayers = [
@@ -223,10 +249,11 @@
   ];
   const stars = starLayers[0]; // Reference for weather presets
   
-  // Nebula
+  // Nebula - Optimized with circular texture
   const nebulaGeo = new THREE.BufferGeometry();
   const nebPos = [], nebCol = [];
-  for (let i = 0; i < 4000; i++) {
+  const nebulaCount = isMobile ? 2000 : 4000;
+  for (let i = 0; i < nebulaCount; i++) {
     const theta = Math.random() * Math.PI * 2, phi = Math.random() * Math.PI, r = 700 + Math.random() * 600;
     nebPos.push(r * Math.sin(phi) * Math.cos(theta), r * Math.sin(phi) * Math.sin(theta), r * Math.cos(phi));
     const c = new THREE.Color().setHSL(Math.random() < 0.5 ? 0.6 : 0.9, 0.8, 0.2 + Math.random()*0.3);
@@ -234,19 +261,39 @@
   }
   nebulaGeo.setAttribute('position', new THREE.Float32BufferAttribute(nebPos, 3));
   nebulaGeo.setAttribute('color', new THREE.Float32BufferAttribute(nebCol, 3));
-  const nebula = new THREE.Points(nebulaGeo, new THREE.PointsMaterial({ size: 15, vertexColors: true, transparent: true, opacity: 0.15, blending: THREE.AdditiveBlending, depthWrite: false }));
+  const nebula = new THREE.Points(nebulaGeo, new THREE.PointsMaterial({ 
+    size: 15, 
+    vertexColors: true, 
+    transparent: true, 
+    opacity: 0.15, 
+    blending: THREE.AdditiveBlending, 
+    depthWrite: false,
+    map: createCircleTexture(),
+    alphaTest: 0.01
+  }));
   scene.add(nebula);
   
-  // Planets
+  // Planets - Optimized geometry
   const planets = [];
   function createPlanet(radius, color, pos, hasRings = false, hasAtmos = false, atmosColor = null) {
-    const mesh = new THREE.Mesh(new THREE.SphereGeometry(radius, 64, 64), new THREE.MeshStandardMaterial({ color: color, roughness: 0.7, metalness: 0.2 }));
+    // Use lower poly count for smaller planets, higher for larger ones
+    const segments = radius > 5 ? 48 : 32;
+    const mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(radius, segments, segments), 
+      new THREE.MeshStandardMaterial({ 
+        color: color, 
+        roughness: 0.7, 
+        metalness: 0.2,
+        flatShading: false
+      })
+    );
     mesh.position.set(pos.x, pos.y, pos.z);
-    mesh.castShadow = true; mesh.receiveShadow = true;
+    mesh.castShadow = false; // Disabled for performance
+    mesh.receiveShadow = false;
     scene.add(mesh);
     
     if (hasAtmos) {
-      const glow = new THREE.Mesh(new THREE.SphereGeometry(radius * 1.15, 32, 32), new THREE.ShaderMaterial({
+      const glow = new THREE.Mesh(new THREE.SphereGeometry(radius * 1.15, 24, 24), new THREE.ShaderMaterial({
         uniforms: { c: { value: 0.3 }, p: { value: 4.5 }, glowColor: { value: new THREE.Color(atmosColor || color) } },
         vertexShader: `varying vec3 vNormal; void main() { vNormal = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
         fragmentShader: `uniform vec3 glowColor; uniform float c; uniform float p; varying vec3 vNormal; void main() { float intensity = pow(c - dot(vNormal, vec3(0.0, 0.0, 1.0)), p); gl_FragColor = vec4(glowColor, 1.0) * intensity; }`,
@@ -392,25 +439,38 @@
   }
   setInterval(() => { if(Math.random()<0.3) spawnShootingStar(); }, 2000);
 
-  // Animation Loop
+  // Animation Loop - Optimized for 60fps
   let lastTime = 0;
+  let frameCount = 0;
+  let lastFpsUpdate = 0;
+  
   function animate(currentTime) {
     requestAnimationFrame(animate);
-    const dt = Math.min((currentTime - lastTime) / 1000, 0.1);
+    const dt = Math.min((currentTime - lastTime) / 1000, 0.033); // Cap at 30fps minimum
     lastTime = currentTime;
     const scale = dt * 60;
+    
+    // FPS monitoring (optional, remove in production)
+    frameCount++;
+    if (currentTime - lastFpsUpdate > 1000) {
+      // console.log('FPS:', frameCount);
+      frameCount = 0;
+      lastFpsUpdate = currentTime;
+    }
     
     // Warp
     cinematic.warpFactor += (cinematic.targetWarp - cinematic.warpFactor) * dt * 2;
     const warpSpeed = 1 + cinematic.warpFactor * 50;
     
-    // Stars
+    // Stars - Optimized rotation
+    const baseRotation = 0.00005 * scale * warpSpeed;
     starLayers.forEach((stars, i) => {
-      stars.rotation.y += 0.00005 * (i + 1) * scale * warpSpeed;
+      stars.rotation.y += baseRotation * (i + 1);
       if (cinematic.warpFactor > 0.01) {
-         stars.scale.z = 1 + cinematic.warpFactor * 20;
+         const warpScale = 1 + cinematic.warpFactor * 20;
+         stars.scale.z = warpScale;
          stars.rotation.z += 0.001 * scale;
-      } else {
+      } else if (stars.scale.z !== 1) {
          stars.scale.z += (1 - stars.scale.z) * dt * 2;
       }
     });
@@ -425,11 +485,14 @@
     sunGlow.rotation.y -= 0.0015 * scale;
     sunGlow.rotation.z += 0.0008 * scale;
     
-    // Planets
+    // Planets - Batch update
     const cx = sun.position.x, cz = sun.position.z;
     planets.forEach(p => {
       p.angle += p.speed * scale;
-      p.mesh.position.set(cx + Math.cos(p.angle)*p.radius, p.mesh.position.y, cz + Math.sin(p.angle)*p.radius);
+      const cosAngle = Math.cos(p.angle);
+      const sinAngle = Math.sin(p.angle);
+      p.mesh.position.x = cx + cosAngle * p.radius;
+      p.mesh.position.z = cz + sinAngle * p.radius;
       p.mesh.rotation.y += p.rotationSpeed * scale;
     });
     
@@ -437,40 +500,52 @@
       moon.rotation.y += 0.02 * scale;
       if (!moon.orbAng) moon.orbAng = 0;
       moon.orbAng += 0.03 * scale;
-      moon.position.set(Math.cos(moon.orbAng)*8, 0, Math.sin(moon.orbAng)*8);
+      const moonCos = Math.cos(moon.orbAng) * 8;
+      const moonSin = Math.sin(moon.orbAng) * 8;
+      moon.position.set(moonCos, 0, moonSin);
     }
     
+    // Asteroids - Optimized
     asteroids.forEach(a => {
       a.angle += a.orb * scale;
-      a.mesh.position.set(cx + Math.cos(a.angle)*a.dist, a.mesh.position.y, cz + Math.sin(a.angle)*a.dist);
-      a.mesh.rotation.x += a.rot * scale;
-      a.mesh.rotation.y += a.rot * scale;
+      const aCos = Math.cos(a.angle) * a.dist;
+      const aSin = Math.sin(a.angle) * a.dist;
+      a.mesh.position.x = cx + aCos;
+      a.mesh.position.z = cz + aSin;
+      const rotDelta = a.rot * scale;
+      a.mesh.rotation.x += rotDelta;
+      a.mesh.rotation.y += rotDelta;
     });
     
-    // Shooting Stars Update
-    shootingStars.forEach(s => {
-      if(!s.active) return;
-      s.t += dt * 1.5; // Speed
-      if(s.t > 1) { s.active = false; s.mesh.material.opacity = 0; return; }
+    // Shooting Stars Update - Only active ones
+    for (let i = shootingStars.length - 1; i >= 0; i--) {
+      const s = shootingStars[i];
+      if (!s.active) continue;
+      
+      s.t += dt * 1.5;
+      if (s.t > 1) { 
+        s.active = false; 
+        s.mesh.material.opacity = 0; 
+        continue;
+      }
       
       const p1 = new THREE.Vector3().lerpVectors(s.start, s.end, s.t);
-      // Trail length 0.2
       const p2 = new THREE.Vector3().lerpVectors(s.start, s.end, Math.max(0, s.t - 0.1));
       
-      s.mesh.geometry.attributes.position.setXYZ(0, p1.x, p1.y, p1.z);
-      s.mesh.geometry.attributes.position.setXYZ(1, p2.x, p2.y, p2.z);
-      s.mesh.geometry.attributes.position.needsUpdate = true;
-      // Fade out
+      const positions = s.mesh.geometry.attributes.position;
+      positions.setXYZ(0, p1.x, p1.y, p1.z);
+      positions.setXYZ(1, p2.x, p2.y, p2.z);
+      positions.needsUpdate = true;
+      
       s.mesh.material.opacity = Math.sin(s.t * Math.PI) * 0.8;
-    });
+    }
     
     // Background weather particles
     if (bgWeatherParticles && bgWeatherParticles.material.userData.shader) {
-      // Update shader time uniform instead of CPU loop
       bgWeatherParticles.material.userData.shader.uniforms.uTime.value = currentTime * 0.001;
     }
     
-    // Cinematic Camera Drift
+    // Cinematic Camera Drift - Smooth interpolation
     updateMouseInfluence(dt);
     const time = currentTime * 0.00005;
     const driftX = Math.sin(time) * 10 + Math.cos(time * 0.3) * 5;
