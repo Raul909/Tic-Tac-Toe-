@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { generateRoomCode, checkWinner, validateRegistration } = require('./utils');
+const { generateRoomCode, checkWinner, validateRegistration, validateRoomJoin } = require('./utils');
 
 test('generateRoomCode', async (t) => {
   await t.test('should return a 4-character string', () => {
@@ -198,5 +198,36 @@ test('validateRegistration', async (t) => {
     result = validateRegistration('user123', '');
     assert.strictEqual(result.ok, false);
     assert.match(result.error, /Missing fields/);
+  });
+});
+
+test('validateRoomJoin', async (t) => {
+  await t.test('should return error if room does not exist', () => {
+    const result = validateRoomJoin(undefined, 'socket1');
+    assert.deepStrictEqual(result, { ok: false, error: 'Room not found' });
+  });
+
+  await t.test('should return error if game is in progress', () => {
+    const room = { status: 'playing', players: [] };
+    const result = validateRoomJoin(room, 'socket1');
+    assert.deepStrictEqual(result, { ok: false, error: 'Game in progress' });
+  });
+
+  await t.test('should return error if room is full', () => {
+    const room = { status: 'waiting', players: [{}, {}] };
+    const result = validateRoomJoin(room, 'socket1');
+    assert.deepStrictEqual(result, { ok: false, error: 'Room is full' });
+  });
+
+  await t.test('should return error if user created the room', () => {
+    const room = { status: 'waiting', players: [{ socketId: 'socket1' }] };
+    const result = validateRoomJoin(room, 'socket1');
+    assert.deepStrictEqual(result, { ok: false, error: 'You created this room' });
+  });
+
+  await t.test('should return ok for valid join', () => {
+    const room = { status: 'waiting', players: [{ socketId: 'socket2' }] };
+    const result = validateRoomJoin(room, 'socket1');
+    assert.deepStrictEqual(result, { ok: true });
   });
 });

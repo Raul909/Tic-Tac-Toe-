@@ -48,9 +48,24 @@ function validateRegistration(username, password) {
   return { ok: true, key };
 }
 
+/**
+ * Validates if a user can join a room.
+ * @param {Object} room - The room object from the rooms Map.
+ * @param {string} socketId - The socket ID of the user trying to join.
+ * @returns {Object} - Result object with { ok: boolean, error?: string }.
+ */
+function validateRoomJoin(room, socketId) {
+  if (!room) return { ok: false, error: 'Room not found' };
+  if (room.status === 'playing') return { ok: false, error: 'Game in progress' };
+  if (room.players.length >= 2) return { ok: false, error: 'Room is full' };
+  if (room.players[0] && room.players[0].socketId === socketId) return { ok: false, error: 'You created this room' };
+  return { ok: true };
+}
+
 module.exports = {
   WINS,
   checkWinner,
   generateRoomCode,
-  validateRegistration
+  validateRegistration,
+  validateRoomJoin
 };
