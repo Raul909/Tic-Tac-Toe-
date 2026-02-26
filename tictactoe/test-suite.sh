@@ -39,7 +39,7 @@ test_api() {
         response=$(curl -s "http://localhost:3000$endpoint")
     fi
     
-    if echo "$response" | grep -q "$expected"; then
+    if echo "$response" | grep -Fq "$expected"; then
         echo -e "${GREEN}✓ PASSED${NC}"
         ((PASSED++))
     else
