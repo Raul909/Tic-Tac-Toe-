@@ -42,6 +42,15 @@
       { name: 'Helix Nebula', type: 'Planetary Nebula', distance: 650, color: 0xAA96DA, size: 2.5, constellation: 'Aquarius', radius: 18 },
       { name: 'Horsehead Nebula', type: 'Dark Nebula', distance: 1500, color: 0x5D5D5D, size: 3.5, constellation: 'Orion', radius: 22 }
     ],
+
+    constellations: [
+      { name: 'Orion', stars: [[0,50,0], [30,80,20], [-30,80,-20], [0,20,10], [40,30,30], [-40,30,-30], [0,-20,0]], color: 0x00d4ff, brightest: 'Rigel' },
+      { name: 'Ursa Major', stars: [[60,60,40], [80,70,50], [100,60,40], [110,50,30], [100,40,20], [80,35,15], [70,45,25]], color: 0xffd700, brightest: 'Alioth' },
+      { name: 'Cassiopeia', stars: [[-60,80,60], [-40,90,70], [-20,85,65], [0,90,70], [20,80,60]], color: 0xff6b9d, brightest: 'Schedar' },
+      { name: 'Scorpius', stars: [[50,-40,30], [40,-50,20], [30,-60,10], [20,-70,0], [10,-75,-10], [0,-70,-20], [-10,-60,-25]], color: 0xe27b58, brightest: 'Antares' },
+      { name: 'Cygnus', stars: [[0,70,80], [20,60,90], [0,50,100], [-20,60,90], [0,40,110]], color: 0x4a90e2, brightest: 'Deneb' },
+      { name: 'Leo', stars: [[-50,40,50], [-30,50,60], [-10,45,55], [10,40,50], [20,30,40], [10,20,30]], color: 0xffc649, brightest: 'Regulus' }
+    ],
     
     init() {
       const container = document.getElementById('space-gallery-3d');
@@ -108,11 +117,14 @@
         this.createSolarSystem();
       } else if (tab === 'stars') {
         this.createStars();
+      } else if (tab === 'constellations') {
+        this.createConstellations();
       } else {
         this.createNebulae();
       }
       
       this.updateObjectsList();
+      this.updateHUD();
     },
     
     getUserLocationAndWeather() {
@@ -566,6 +578,69 @@
         this.objects.push(nebula);
       });
     },
+
+    createConstellations() {
+      this.constellations.forEach((data, i) => {
+        const group = new THREE.Group();
+        
+        // Create stars
+        data.stars.forEach((pos, j) => {
+          const starGeo = new THREE.SphereGeometry(3, 16, 16);
+          const starMat = new THREE.MeshBasicMaterial({
+            color: data.color,
+            emissive: data.color,
+            emissiveIntensity: 1
+          });
+          const star = new THREE.Mesh(starGeo, starMat);
+          star.position.set(pos[0], pos[1], pos[2]);
+          
+          // Glow
+          const glowGeo = new THREE.SphereGeometry(5, 16, 16);
+          const glowMat = new THREE.MeshBasicMaterial({
+            color: data.color,
+            transparent: true,
+            opacity: 0.3,
+            blending: THREE.AdditiveBlending
+          });
+          const glow = new THREE.Mesh(glowGeo, glowMat);
+          star.add(glow);
+          
+          group.add(star);
+          
+          // Connect lines
+          if (j < data.stars.length - 1) {
+            const lineGeo = new THREE.BufferGeometry().setFromPoints([
+              new THREE.Vector3(pos[0], pos[1], pos[2]),
+              new THREE.Vector3(data.stars[j+1][0], data.stars[j+1][1], data.stars[j+1][2])
+            ]);
+            const lineMat = new THREE.LineBasicMaterial({
+              color: data.color,
+              transparent: true,
+              opacity: 0.5
+            });
+            const line = new THREE.Line(lineGeo, lineMat);
+            group.add(line);
+          }
+        });
+        
+        group.userData = { ...data, type: 'Constellation', id: i };
+        this.scene.add(group);
+        this.objects.push(group);
+      });
+    },
+
+    updateHUD() {
+      requestAnimationFrame(() => {
+        const camPos = this.camera.position;
+        const hudCam = document.getElementById('hud-camera');
+        const hudTarget = document.getElementById('hud-target');
+        const hudZoom = document.getElementById('hud-zoom');
+        
+        if (hudCam) hudCam.textContent = `CAM: ${camPos.x.toFixed(0)}, ${camPos.y.toFixed(0)}, ${camPos.z.toFixed(0)}`;
+        if (hudTarget) hudTarget.textContent = `TGT: ${this.selectedObj ? this.selectedObj.userData.name : 'None'}`;
+        if (hudZoom) hudZoom.textContent = `ZOOM: ${(1 / (this.camera.position.length() / 300)).toFixed(1)}x`;
+      });
+    },
     
     onClick(event) {
       const rect = this.renderer.domElement.getBoundingClientRect();
@@ -613,15 +688,17 @@
       }
       
       let html = `<div class="font-bold text-nasa mb-2">${data.name}</div>`;
-      html += `<div class="text-xs text-gray-400 mb-2">${data.type}</div>`;
+      html += `<div class="text-xs text-gray-400 mb-2">${data.type || 'Constellation'}</div>`;
       if (data.temp) html += `<div>Temp: ${data.temp}</div>`;
       if (data.mass) html += `<div>Mass: ${data.mass}</div>`;
       if (data.distance !== undefined && this.currentTab === 'solar') html += `<div>Distance: ${data.distance}M km</div>`;
-      if (data.distance && this.currentTab !== 'solar') html += `<div>Distance: ${data.distance} ly</div>`;
+      if (data.distance && this.currentTab !== 'solar' && this.currentTab !== 'constellations') html += `<div>Distance: ${data.distance} ly</div>`;
       if (data.orbit) html += `<div>Orbit: ${data.orbit} years</div>`;
       if (data.moons !== undefined) html += `<div>Moons: ${data.moons}</div>`;
       if (data.size) html += `<div>Size: ${data.size} ly</div>`;
-      if (data.constellation) html += `<div>Constellation: ${data.constellation}</div>`;
+      if (data.constellation) html += `<div>In: ${data.constellation}</div>`;
+      if (data.brightest) html += `<div>Brightest: ${data.brightest}</div>`;
+      if (data.stars) html += `<div>Stars: ${data.stars.length}</div>`;
       
       details.innerHTML = html;
     },
@@ -629,12 +706,13 @@
     updateObjectsList() {
       const list = document.getElementById('space-objects-list');
       const data = this.currentTab === 'solar' ? this.solarSystem : 
-                   this.currentTab === 'stars' ? this.nearbyStars : this.nebulae;
+                   this.currentTab === 'stars' ? this.nearbyStars : 
+                   this.currentTab === 'constellations' ? this.constellations : this.nebulae;
       
       list.innerHTML = data.map((o, i) => 
         `<div class="space-object-item" onclick="window.SpaceGallery3D.selectObject(${i})">
           <div class="font-bold">${o.name}</div>
-          <div class="text-xs text-gray-400">${o.type}</div>
+          <div class="text-xs text-gray-400">${o.type || (this.currentTab === 'constellations' ? 'Constellation' : '')}</div>
         </div>`
       ).join('');
     },
@@ -646,6 +724,9 @@
       if (this.controls) {
         this.controls.update();
       }
+      
+      // Update HUD in real-time
+      this.updateHUD();
       
       // Update weather particles
       if (this.weatherParticles) {
@@ -668,7 +749,7 @@
         this.weatherParticles.geometry.attributes.position.needsUpdate = true;
       }
       
-      // Rotate reference Earth
+      // Rotate reference Earth (removed location indicator)
       if (this.referenceEarth) {
         this.referenceEarth.rotation.y += 0.005;
       }

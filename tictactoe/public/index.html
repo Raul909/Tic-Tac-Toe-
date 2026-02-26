@@ -669,51 +669,61 @@
     </div>
   </div>
 
-  <div x-show="screen === 'space'" class="content-layer min-h-screen p-4">
+  <div x-show="screen === 'space'" class="content-layer min-h-screen p-3 sm:p-4">
     <div class="max-w-7xl mx-auto">
-      <div class="flex justify-between items-center mb-6">
-        <h2 class="text-4xl font-bold tracking-wider">🌌 SPACE EXPLORER</h2>
-        <button @click="closeSpaceGallery()" class="bg-gray-800 px-6 py-3 rounded hover:bg-gray-700 transition font-bold">← BACK</button>
+      <div class="flex justify-between items-center mb-4 sm:mb-6">
+        <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold tracking-wider">🌌 SPACE EXPLORER</h2>
+        <button @click="closeSpaceGallery()" class="bg-gray-800 px-4 sm:px-6 py-2 sm:py-3 rounded hover:bg-gray-700 transition font-bold text-sm sm:text-base">← BACK</button>
       </div>
       
-      <div class="flex gap-2 mb-4">
+      <div class="flex gap-2 mb-4 overflow-x-auto">
         <button @click="loadSpaceTab('solar')" 
                 :class="spaceTab === 'solar' ? 'bg-nasa text-black' : 'bg-gray-800'"
-                class="px-6 py-2 rounded font-bold transition">SOLAR SYSTEM</button>
+                class="px-4 sm:px-6 py-2 rounded font-bold transition text-xs sm:text-sm whitespace-nowrap">☀️ SOLAR SYSTEM</button>
         <button @click="loadSpaceTab('stars')" 
                 :class="spaceTab === 'stars' ? 'bg-nasa text-black' : 'bg-gray-800'"
-                class="px-6 py-2 rounded font-bold transition">NEARBY STARS</button>
+                class="px-4 sm:px-6 py-2 rounded font-bold transition text-xs sm:text-sm whitespace-nowrap">⭐ NEARBY STARS</button>
         <button @click="loadSpaceTab('nebulae')" 
                 :class="spaceTab === 'nebulae' ? 'bg-nasa text-black' : 'bg-gray-800'"
-                class="px-6 py-2 rounded font-bold transition">NEBULAE</button>
+                class="px-4 sm:px-6 py-2 rounded font-bold transition text-xs sm:text-sm whitespace-nowrap">🌌 NEBULAE</button>
+        <button @click="loadSpaceTab('constellations')" 
+                :class="spaceTab === 'constellations' ? 'bg-nasa text-black' : 'bg-gray-800'"
+                class="px-4 sm:px-6 py-2 rounded font-bold transition text-xs sm:text-sm whitespace-nowrap">✨ CONSTELLATIONS</button>
       </div>
       
       <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
         <div class="lg:col-span-3">
-          <div class="glass nasa-bracket rounded-lg p-4 shadow-2xl">
-            <div id="space-gallery-3d" style="width: 100%; height: 500px;"></div>
-            <div class="flex gap-4 mt-4">
-              <button @click="resetSpaceView()" class="bg-gray-800 px-6 py-2 rounded hover:bg-gray-700 transition font-bold">RESET VIEW</button>
-              <div class="text-xs text-gray-400 flex items-center gap-4">
-                <span>🖱️ Drag to rotate</span>
-                <span>🔍 Scroll to zoom</span>
-                <span>👆 Click objects</span>
-                <span>🌍 Blue = Your Location</span>
-                <span id="weather-indicator" class="text-nasa"></span>
+          <div class="glass nasa-bracket rounded-lg p-3 sm:p-4 shadow-2xl relative overflow-hidden">
+            <div id="space-gallery-3d" class="rounded-lg" style="width: 100%; height: 400px; sm:height: 500px;"></div>
+            
+            <!-- Real-time HUD Overlay -->
+            <div class="absolute top-6 left-6 glass rounded px-3 py-2 text-xs space-y-1 pointer-events-none">
+              <div class="text-nasa tracking-wider">◆ TELEMETRY ◆</div>
+              <div id="hud-camera" class="text-gray-300">CAM: 0, 0, 0</div>
+              <div id="hud-target" class="text-gray-300">TGT: None</div>
+              <div id="hud-zoom" class="text-gray-300">ZOOM: 1.0x</div>
+            </div>
+            
+            <div class="flex flex-wrap gap-2 sm:gap-4 mt-3 sm:mt-4">
+              <button @click="resetSpaceView()" class="bg-gray-800 px-4 sm:px-6 py-2 rounded hover:bg-gray-700 transition font-bold text-xs sm:text-sm">🔄 RESET VIEW</button>
+              <div class="text-[10px] sm:text-xs text-gray-400 flex flex-wrap items-center gap-2 sm:gap-4">
+                <span>🖱️ Drag</span>
+                <span>🔍 Zoom</span>
+                <span>👆 Click</span>
               </div>
             </div>
           </div>
         </div>
         
-        <div class="glass rounded-lg p-4">
-          <h3 class="text-nasa text-sm tracking-widest mb-4">OBJECTS</h3>
+        <div class="glass rounded-lg p-3 sm:p-4">
+          <h3 class="text-nasa text-xs sm:text-sm tracking-widest mb-3 sm:mb-4">◆ OBJECTS ◆</h3>
           <div class="space-y-2 max-h-96 overflow-y-auto" id="space-objects-list">
             <!-- Objects will be populated by JavaScript -->
           </div>
           
           <div x-show="selectedObject" class="mt-4 pt-4 border-t border-nasa/30">
-            <h4 class="text-nasa text-xs tracking-widest mb-2">DETAILS</h4>
-            <div class="text-sm space-y-1" id="space-object-details">
+            <h4 class="text-nasa text-xs tracking-widest mb-2">◆ DETAILS ◆</h4>
+            <div class="text-xs sm:text-sm space-y-1" id="space-object-details">
               <!-- Details will be populated -->
             </div>
           </div>
