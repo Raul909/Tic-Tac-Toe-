@@ -9,7 +9,7 @@ const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
 const rateLimiter = require('./rateLimiter');
 const mongoose = require('mongoose');
-const { checkWinner, generateRoomCode, validateRegistration } = require('./utils');
+const { checkWinner, generateRoomCode, validateRegistration, validateRoomJoin } = require('./utils');
 
 // Load environment variables
 require('dotenv').config();
@@ -531,10 +531,9 @@ io.on('connection', (socket) => {
     if (typeof code !== 'string') return socket.emit('room:error', 'Invalid room code');
     const upperCode = code.toUpperCase().trim();
     const room = rooms.get(upperCode);
-    if (!room) return socket.emit('room:error', 'Room not found');
-    if (room.status === 'playing') return socket.emit('room:error', 'Game in progress');
-    if (room.players.length >= 2) return socket.emit('room:error', 'Room is full');
-    if (room.players[0].socketId === socket.id) return socket.emit('room:error', 'You created this room');
+
+    const validation = validateRoomJoin(room, socket.id);
+    if (!validation.ok) return socket.emit('room:error', validation.error);
 
     leaveCurrentRoom(socket);
 
