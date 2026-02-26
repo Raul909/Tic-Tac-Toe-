@@ -93,7 +93,7 @@ let saveTimer;
 function saveUsers() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    try { fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2)); } catch (e) { }
+    fs.writeFile(USERS_FILE, JSON.stringify(users, null, 2), (err) => { if (err) console.error("Error saving users:", err); });
   }, 1000);
 }
 
