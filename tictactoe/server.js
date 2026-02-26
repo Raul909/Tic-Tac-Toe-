@@ -88,7 +88,7 @@ const apiLimiter = rateLimit({
 
 // ── DATA PERSISTENCE ──────────────────────────────────────────────────
 const DATA_DIR = path.join(__dirname, 'data');
-const USERS_FILE = path.join(DATA_DIR, 'users.json');
+const USERS_FILE = process.env.TEST_USERS_FILE || path.join(DATA_DIR, 'users.json');
 
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
@@ -655,7 +655,12 @@ io.on('connection', (socket) => {
 // ── HEALTH CHECK ──────────────────────────────────────────────────────
 app.get('/health', (_, res) => res.json({ status: 'ok', uptime: process.uptime() }));
 
+// Export app and server for testing
+module.exports = { app, server };
+
+if (require.main === module) {
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 TicTacToe server running on port ${PORT}`);
 });
+}
