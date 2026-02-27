@@ -3,13 +3,13 @@
  * @param {Object} params - The parameters for authentication.
  * @param {Object} params.res - The Express response object.
  * @param {Object} params.userData - User data { displayName, email, providerId, key, providerName }.
- * @param {Object} params.userStore - { User, users, saveUsers, useDB }.
+ * @param {Object} params.userStore - { User, users, saveUser, useDB }.
  * @param {Object} params.sessionStore - { sessions, uuidv4 }.
  */
 async function handleAuthUser({
   res,
   userData: { displayName, email, providerId, key, providerName },
-  userStore: { User, users, saveUsers, useDB },
+  userStore: { User, users, saveUser, useDB },
   sessionStore: { sessions, uuidv4 }
 }) {
   try {
@@ -67,7 +67,7 @@ async function handleAuthUser({
         if (providerName === 'google') users[key].googleId = providerId;
         if (providerName === 'facebook') users[key].facebookId = providerId;
 
-        saveUsers();
+        saveUser(key);
       }
       user = users[key];
     }

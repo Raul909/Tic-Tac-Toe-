@@ -117,16 +117,13 @@ test('User Registration Integration Test', async (t) => {
   });
 
   await t.test('should persist user to file', async () => {
-    // Wait a bit for the async write (server.js uses setTimeout 1000ms)
-    await new Promise(r => setTimeout(r, 1500));
+    // Wait a bit for the file system
+    await new Promise(r => setTimeout(r, 500));
 
-    const usersFile = path.join(TEST_DIR, 'users.json');
-    assert.ok(fs.existsSync(usersFile), 'Users file should exist');
+    const usersLog = path.join(TEST_DIR, 'users.log');
+    assert.ok(fs.existsSync(usersLog), 'Users log should exist');
 
-    const content = fs.readFileSync(usersFile, 'utf8');
-    const users = JSON.parse(content);
-
-    assert.ok(users['testuser'], 'testuser should be in the file');
-    assert.strictEqual(users['testuser'].displayName, 'testuser');
+    const content = fs.readFileSync(usersLog, 'utf8');
+    assert.ok(content.includes('testuser'), 'testuser should be in the log');
   });
 });

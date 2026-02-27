@@ -52,7 +52,6 @@ const UserSchema = new mongoose.Schema({
     lowercase: true,
     trim: true
   },
-  UserSchema.index({ wins: -1 });
   displayName: { type: String, required: true },
   hash: { type: String, required: true },
   wins: { type: Number, default: 0 },
@@ -61,6 +60,7 @@ const UserSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+UserSchema.index({ wins: -1 });
 const User = mongoose.model('User', UserSchema);
 
 // Helper to check if MongoDB is connected
@@ -94,6 +94,7 @@ const apiLimiter = rateLimit({
 // ── DATA PERSISTENCE ──────────────────────────────────────────────────
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
+const USERS_LOG = path.join(DATA_DIR, 'users.log');
 
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
@@ -102,18 +103,78 @@ let cachedLeaderboard = null;
 let lastLeaderboardUpdate = 0;
 const LEADERBOARD_CACHE_TTL = 60 * 1000; // 60 seconds
 
+// Load users from snapshot
 try {
   if (fs.existsSync(USERS_FILE)) {
     users = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
   }
 } catch (e) { users = {}; }
 
+// Replay logs
+function replayLogFile(filePath) {
+  try {
+    if (fs.existsSync(filePath)) {
+      const logContent = fs.readFileSync(filePath, 'utf8');
+      logContent.split('\n').forEach(line => {
+        if (!line.trim()) return;
+        try {
+          const { k, v } = JSON.parse(line);
+          if (v === null) delete users[k]; // Support deletion
+          else users[k] = v;
+        } catch (e) { console.error('Error replaying log line:', e); }
+      });
+    }
+  } catch (e) { console.error('Error reading user log:', e); }
+}
+
+replayLogFile(USERS_LOG + '.tmp'); // Replay uncompacted tmp first if it exists
+replayLogFile(USERS_LOG);
+
+// Append-Only Log implementation
+function saveUser(key) {
+  if (!users[key]) return;
+  const line = JSON.stringify({ k: key, v: users[key] }) + '\n';
+  fs.appendFile(USERS_LOG, line, (err) => {
+    if (err) console.error("Error appending to user log:", err);
+  });
+}
+
+// Compact logs into snapshot
+function compactUsers() {
+  // Move current log to tmp to prevent race conditions during async write
+  let tmpLog = USERS_LOG + '.tmp';
+  try {
+    if (fs.existsSync(USERS_LOG)) {
+      fs.renameSync(USERS_LOG, tmpLog);
+    }
+  } catch (e) {
+    console.error("Error rotating user log:", e);
+    return;
+  }
+
+  const snapshot = JSON.stringify(users, null, 2);
+  fs.writeFile(USERS_FILE, snapshot, (err) => {
+    if (err) {
+      console.error("Error compacting users:", err);
+    } else {
+      // Clear rotated log after successful write
+      if (fs.existsSync(tmpLog)) {
+        fs.unlink(tmpLog, (err) => {
+          if (err) console.error("Error removing temp user log:", err);
+        });
+      }
+    }
+  });
+}
+
+// Run compaction every hour
+setInterval(compactUsers, 60 * 60 * 1000).unref();
+
+// Backward compatibility / deprecation wrapper
 let saveTimer;
 function saveUsers() {
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
-    fs.writeFile(USERS_FILE, JSON.stringify(users, null, 2), (err) => { if (err) console.error("Error saving users:", err); });
-  }, 1000);
+  saveTimer = setTimeout(compactUsers, 1000);
 }
 
 // ── IN-MEMORY SESSIONS & ROOMS ────────────────────────────────────────
@@ -152,7 +213,7 @@ app.post('/api/register', authLimiter, async (req, res) => {
       createdAt: Date.now(),
       isGuest: true 
     };
-    saveUsers();
+    saveUser(key);
     
     const token = uuidv4();
     sessions.set(token, key);
@@ -189,7 +250,7 @@ app.post('/api/register', authLimiter, async (req, res) => {
   // ── File-based fallback ──
   if (users[key]) return res.json({ ok: false, error: 'Username already taken' });
   users[key] = { displayName: username.trim(), hash, wins: 0, losses: 0, draws: 0, createdAt: Date.now() };
-  saveUsers();
+  saveUser(key);
 
   const token = uuidv4();
   sessions.set(token, key);
@@ -274,7 +335,7 @@ app.post('/api/auth/google', async (req, res) => {
           await handleAuthUser({
             res,
             userData: { displayName: name, email, providerId: googleId, key, providerName: "google" },
-            userStore: { User, users, saveUsers, useDB },
+            userStore: { User, users, saveUser, useDB },
             sessionStore: { sessions, uuidv4 }
           });
         } catch (e) {
@@ -324,7 +385,7 @@ app.post('/api/auth/facebook', async (req, res) => {
           await handleAuthUser({
             res,
             userData: { displayName: name, email, providerId: fbId, key, providerName: "facebook" },
-            userStore: { User, users, saveUsers, useDB },
+            userStore: { User, users, saveUser, useDB },
             sessionStore: { sessions, uuidv4 }
           });
         } catch (e) {
@@ -388,7 +449,8 @@ const context = {
   userRoom,
   disconnectTimeouts,
   tournaments,
-  saveUsers,
+  saveUser,
+  saveUsers, // Deprecated
   // io will be added in setupSocket
 };
 

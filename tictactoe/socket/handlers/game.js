@@ -8,7 +8,7 @@ module.exports = (socket, context) => {
     socketUser,
     users,
     rooms,
-    saveUsers,
+    saveUser,
     io,
     handleTournamentResult // This will need to be passed in or imported if it's a module
   } = context;
@@ -36,16 +36,20 @@ module.exports = (socket, context) => {
         room.scores[result.winner]++;
         const winPlayer = room.players.find(p => p.symbol === result.winner);
         const losePlayer = room.players.find(p => p.symbol !== result.winner);
-        if (winPlayer && users[winPlayer.key]) { users[winPlayer.key].wins++; saveUsers(); }
-        if (losePlayer && users[losePlayer.key]) { users[losePlayer.key].losses++; saveUsers(); }
+        if (winPlayer && users[winPlayer.key]) { users[winPlayer.key].wins++; saveUser(winPlayer.key); }
+        if (losePlayer && users[losePlayer.key]) { users[losePlayer.key].losses++; saveUser(losePlayer.key); }
         io.to(code).emit('game:over', { winner: result.winner, line: result.line, scores: room.scores });
         if (typeof handleTournamentResult === 'function') {
             handleTournamentResult(room, { winner: result.winner });
         }
       } else {
         room.scores.D++;
-        room.players.forEach(p => { if (users[p.key]) users[p.key].draws++; });
-        saveUsers();
+        room.players.forEach(p => {
+          if (users[p.key]) {
+            users[p.key].draws++;
+            saveUser(p.key);
+          }
+        });
         io.to(code).emit('game:over', { winner: null, draw: true, scores: room.scores });
         if (typeof handleTournamentResult === 'function') {
             handleTournamentResult(room, { draw: true });
